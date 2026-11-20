@@ -17,7 +17,7 @@ const DOT_NAMES = {
 };
 
 export class View {
-  constructor(root, lesson, { renderMarkdown = plainMarkdown, onFullscreen = null } = {}) {
+  constructor(root, lesson, { renderMarkdown = plainMarkdown, onFullscreen = null, reduceMotion = false } = {}) {
     this.root = root;
     this.lesson = lesson;
     this.renderMarkdown = renderMarkdown;
@@ -34,7 +34,7 @@ export class View {
     this.pauseButton = this.toolButton('pause', 'Pause', () => this.togglePause());
     const tools = h('div', { cls: 'stepper-tools' }, [this.toolButton('rotate-ccw', 'Replay', () => this.player.replay()), this.pauseButton]);
     const stageBox = h('div', { cls: 'stepper-stage-box' }, [this.chips, tools, this.card, this.legend]);
-    this.player = new Player(stageBox);
+    this.player = new Player(stageBox, { reduceMotion });
     this.timeline = h('ol', { cls: 'stepper-timeline' });
     this.panel = h('div', { cls: 'stepper-panel' });
     this.goals = h('ul', { cls: 'stepper-goals' });

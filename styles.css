@@ -182,3 +182,9 @@
   .stepper-card { max-width: 62%; font-size: 10.5px; padding: 6px 9px 7px; right: 8px; bottom: 8px; }
   .stepper-legend { bottom: auto; top: 64px; }
 }
+
+/* Moving dots */
+.stepper .st-dot { stroke: var(--st-ink); stroke-width: 1.3; }
+.stepper .st-ring { fill: none; stroke: #7fc278; stroke-width: 2; }
+.stepper .st-fail { fill: var(--st-red); stroke: var(--st-ink); stroke-width: 1.2; }
+.stepper .st-fail-x { stroke: #fff; stroke-width: 1.8; stroke-linecap: round; }

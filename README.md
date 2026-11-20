@@ -93,6 +93,17 @@ The code is plain JavaScript. Start reading at `src/main.js`. Each file begins w
 - [x] Layout follows the block's own width: one column when narrow, side panel when wide
 - [x] Every button has a visible label or `aria-label`
 
+### Phase 6: Moving dots
+- [x] Dots travel along a route of one or more links, at `rate` dots per second
+- [x] Dot kinds: request, response, message, write, heavy, slow, health check, poison, failure, yours
+- [x] `fail`: a share of dots burst into a red ✕ on the way
+- [x] `bounce`: go there and come back as a green response; `reverse`: run backwards
+- [x] A small ring pops when a dot arrives
+- [x] Arrows are already busy when a step appears (no empty start)
+- [x] Pause and Replay
+- [x] The loop stops when the block is off screen or paused (no wasted CPU)
+- [x] Unit tests (5 more, 23 total) + a browser check
+
 ## Credits
 
 Icons from [Lucide](https://lucide.dev) (ISC license). The look was inspired by the *Designed to Scale* course by Dilum Sanjaya. No code or artwork was copied from it.

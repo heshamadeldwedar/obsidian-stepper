@@ -89,24 +89,24 @@ function nextScene(previous, raw, path) {
   const changes = (replace ? raw["scene!"] : raw.scene) ?? {};
   const scene = replace ? {} : { ...previous };
   for (const [id, change] of Object.entries(changes)) {
-    const where = `${path}.scene.${id}`;
+    const where2 = `${path}.scene.${id}`;
     if (change === null) {
       delete scene[id];
       continue;
     }
-    if (typeof change !== "object") throw new LessonError(where, "a shape must be a map, like { type: block, at: [0, 0] }");
-    scene[id] = readShape(id, scene[id], change, where);
+    if (typeof change !== "object") throw new LessonError(where2, "a shape must be a map, like { type: block, at: [0, 0] }");
+    scene[id] = readShape(id, scene[id], change, where2);
   }
   return scene;
 }
-function readShape(id, old, change, where) {
+function readShape(id, old, change, where2) {
   const type = change.type ?? old?.type;
-  if (!type) throw new LessonError(where, "add a type: " + Object.keys(SHAPES).join(", "));
-  if (!SHAPES[type]) throw new LessonError(where, `unknown type "${type}" (${Object.keys(SHAPES).join(", ")})`);
+  if (!type) throw new LessonError(where2, "add a type: " + Object.keys(SHAPES).join(", "));
+  if (!SHAPES[type]) throw new LessonError(where2, `unknown type "${type}" (${Object.keys(SHAPES).join(", ")})`);
   const base = old && old.type === type ? old : { id, type, ...SHAPES[type] };
   const shape = { ...base, ...change };
   if (!Array.isArray(shape.at) || shape.at.length !== 2 || !shape.at.every(Number.isFinite)) {
-    throw new LessonError(where, "add a position: at: [x, y]");
+    throw new LessonError(where2, "add a position: at: [x, y]");
   }
   shape.label = shape.label ?? "";
   return shape;
@@ -115,30 +115,30 @@ function nextLinks(previous, changes = {}, scene, path) {
   const links = {};
   for (const [id, link] of Object.entries(previous)) if (scene[link.from] && scene[link.to]) links[id] = link;
   for (const [id, change] of Object.entries(changes ?? {})) {
-    const where = `${path}.links.${id}`;
+    const where2 = `${path}.links.${id}`;
     if (change === null) {
       delete links[id];
       continue;
     }
     const link = { ...LINK_DEFAULTS, ...links[id], ...change, id };
     for (const end of ["from", "to"]) {
-      if (!scene[link[end]]) throw new LessonError(`${where}.${end}`, `no shape called "${link[end]}" in this step`);
+      if (!scene[link[end]]) throw new LessonError(`${where2}.${end}`, `no shape called "${link[end]}" in this step`);
     }
-    oneOf(link.style, LINK_STYLES, `${where}.style`);
-    oneOf(link.heads, ["end", "both", "none"], `${where}.heads`);
+    oneOf(link.style, LINK_STYLES, `${where2}.style`);
+    oneOf(link.heads, ["end", "both", "none"], `${where2}.heads`);
     links[id] = link;
   }
   return links;
 }
 function readFlows(flows = [], links, path) {
   return (flows ?? []).map((flow, i) => {
-    const where = `${path}[${i}]`;
+    const where2 = `${path}[${i}]`;
     const route = Array.isArray(flow.route) ? flow.route : [flow.route];
-    for (const id of route) if (!links[id]) throw new LessonError(`${where}.route`, `no link called "${id}"`);
+    for (const id of route) if (!links[id]) throw new LessonError(`${where2}.route`, `no link called "${id}"`);
     return {
       route,
       rate: Number(flow.rate ?? 2),
-      kind: oneOf(flow.kind ?? "req", DOT_KINDS, `${where}.kind`),
+      kind: oneOf(flow.kind ?? "req", DOT_KINDS, `${where2}.kind`),
       fail: Number(flow.fail ?? 0),
       bounce: Boolean(flow.bounce),
       reverse: Boolean(flow.reverse)
@@ -155,18 +155,18 @@ function readValues(values = {}) {
   }
   return out;
 }
-function readCallout(callout, where) {
+function readCallout(callout, where2) {
   if (!callout) return null;
   if (typeof callout === "string") return { kind: "tip", text: callout };
-  return { kind: oneOf(callout.kind ?? "tip", CALLOUT_KINDS, `${where}.kind`), text: String(callout.text ?? "") };
+  return { kind: oneOf(callout.kind ?? "tip", CALLOUT_KINDS, `${where2}.kind`), text: String(callout.text ?? "") };
 }
-function readCard(card, where) {
+function readCard(card, where2) {
   if (!card) return null;
-  if (!Array.isArray(card.lines)) throw new LessonError(`${where}.lines`, "a card needs lines: [ \u2026 ]");
+  if (!Array.isArray(card.lines)) throw new LessonError(`${where2}.lines`, "a card needs lines: [ \u2026 ]");
   return { title: String(card.title ?? ""), icon: card.icon ?? "", lines: card.lines.map(String) };
 }
-function oneOf(value, allowed, where) {
-  if (!allowed.includes(value)) throw new LessonError(where, `"${value}" is not one of: ${allowed.filter(Boolean).join(", ")}`);
+function oneOf(value, allowed, where2) {
+  if (!allowed.includes(value)) throw new LessonError(where2, `"${value}" is not one of: ${allowed.filter(Boolean).join(", ")}`);
   return value;
 }
 
@@ -725,6 +725,10 @@ var Stage = class {
       this.labelsHtml = labels;
     }
   }
+  // Draw the moving dots and the short effects (arrival rings, fail bursts). Called every frame.
+  drawDots(dots, effects) {
+    this.layers.dots.innerHTML = dots.map(drawDot).join("") + effects.map(drawEffect).join("");
+  }
   // The view that shows all these shapes.
   fitView(shapes) {
     return fit(shapes.map((shape) => SHAPE_DRAWERS[shape.type].bounds(shape)));
@@ -735,26 +739,141 @@ var Stage = class {
   }
 };
 var svgEl = (name) => document.createElementNS("http://www.w3.org/2000/svg", name);
+function drawDot({ x, y, kind }) {
+  const color = DOTS[kind] ?? DOTS.req;
+  x = r2(x);
+  y = r2(y);
+  if (kind === "msg" || kind === "poison") return `<rect x="${x - 4}" y="${y - 4}" width="8" height="8" rx="1.5" fill="${color}" class="st-dot"/>`;
+  if (kind === "heavy") return `<rect x="${x - 5.5}" y="${y - 5.5}" width="11" height="11" rx="2" fill="${color}" class="st-dot"/>`;
+  if (kind === "ping") return `<circle cx="${x}" cy="${y}" r="4.5" fill="none" stroke="${color}" stroke-width="2"/>`;
+  if (kind === "fail") return failMark(x, y, 1);
+  return `<circle cx="${x}" cy="${y}" r="4.5" fill="${color}" class="st-dot"/>`;
+}
+function drawEffect({ type, x, y, age }) {
+  x = r2(x);
+  y = r2(y);
+  if (type === "fail") return failMark(x, y, 1 - age);
+  return `<circle cx="${x}" cy="${y}" r="${r2(4 + age * 10)}" class="st-ring" opacity="${r2(1 - age)}"/>`;
+}
+function failMark(x, y, opacity) {
+  return `<g opacity="${r2(opacity)}"><circle cx="${x}" cy="${y}" r="6.5" class="st-fail"/><path d="M${x - 2.6},${y - 2.6} L${x + 2.6},${y + 2.6} M${x + 2.6},${y - 2.6} L${x - 2.6},${y + 2.6}" class="st-fail-x"/></g>`;
+}
+
+// src/dots.js
+var SPEED = 120;
+function routePoints(flow, step) {
+  const points = flow.route.flatMap((id, i) => {
+    const line = linkPoints(step.links[id], step.scene);
+    return i === 0 ? line : line.slice(1);
+  });
+  return flow.reverse ? points.reverse() : points;
+}
+function startFlow(flow, points, random = Math.random) {
+  return { flow, points, length: lengthOf(points), dots: [], due: random(), random };
+}
+function tick(state, seconds, { spawning = true } = {}) {
+  const events = [];
+  const { flow, length } = state;
+  if (spawning) {
+    state.due += seconds * flow.rate;
+    while (state.due >= 1) {
+      state.due -= 1;
+      const fails = state.random() < flow.fail;
+      state.dots.push({ distance: 0, back: false, fails, failAt: length * (0.55 + state.random() * 0.3) });
+    }
+  }
+  for (const dot of state.dots) {
+    dot.distance += SPEED * seconds;
+    if (dot.fails && !dot.back && dot.distance >= dot.failAt) {
+      dot.gone = true;
+      events.push({ type: "fail", ...where(state, { ...dot, distance: dot.failAt }) });
+    } else if (dot.distance >= length) {
+      if (flow.bounce && !dot.back) {
+        dot.back = true;
+        dot.distance = 0;
+        continue;
+      }
+      dot.gone = true;
+      events.push({ type: "arrive", ...where(state, { ...dot, distance: length }) });
+    }
+  }
+  state.dots = state.dots.filter((dot) => !dot.gone);
+  return events;
+}
+function where(state, dot) {
+  const along = dot.back ? state.length - dot.distance : dot.distance;
+  const [x, y] = pointAt(state.points, Math.min(along, state.length));
+  return { x, y, kind: dot.back ? "res" : state.flow.kind };
+}
 
 // src/player.js
+var EFFECT_SECONDS = { arrive: 0.45, fail: 0.6 };
 var Player = class {
-  constructor(parent) {
+  constructor(parent, { reduceMotion = false } = {}) {
     this.stage = new Stage(parent);
-    this.step = null;
+    this.reduceMotion = reduceMotion;
+    this.paused = false;
+    this.visible = true;
+    this.flows = [];
+    this.effects = [];
+    this.frame = this.frame.bind(this);
+    this.observer = new IntersectionObserver(([entry]) => {
+      this.visible = entry.isIntersecting;
+      this.wake();
+    });
+    this.observer.observe(this.stage.el);
   }
   show(step) {
     const shapes = Object.values(step.scene);
     this.stage.drawShapes(shapes);
     this.stage.drawLinks(Object.values(step.links), step.scene);
     this.stage.setView(this.stage.fitView(shapes));
+    this.startFlows(step);
     this.step = step;
+    this.wake();
+  }
+  startFlows(step) {
+    this.flows = step.flows.map((flow) => startFlow(flow, routePoints(flow, step)));
+    this.effects = [];
+    if (!this.reduceMotion) for (let i = 0; i < 60; i++) for (const state of this.flows) tick(state, 0.05);
+    this.stage.drawDots(this.dots(), []);
   }
   replay() {
     if (this.step) this.show(this.step);
   }
-  setPaused() {
+  setPaused(paused) {
+    this.paused = paused;
+    this.wake();
+  }
+  get running() {
+    return !this.paused && this.visible && !this.reduceMotion && this.flows.length > 0;
+  }
+  // Start the loop if it should run and isn't running yet.
+  wake() {
+    if (this.running && !this.raf) {
+      this.last = performance.now();
+      this.raf = requestAnimationFrame(this.frame);
+    }
+  }
+  frame(now) {
+    this.raf = null;
+    const seconds = Math.min(0.05, (now - this.last) / 1e3);
+    this.last = now;
+    for (const state of this.flows) {
+      for (const event of tick(state, seconds)) this.effects.push({ ...event, age: 0 });
+    }
+    for (const effect of this.effects) effect.age += seconds / EFFECT_SECONDS[effect.type];
+    this.effects = this.effects.filter((effect) => effect.age < 1);
+    this.stage.drawDots(this.dots(), this.effects);
+    if (this.running) this.raf = requestAnimationFrame(this.frame);
+  }
+  dots() {
+    return this.flows.flatMap((state) => state.dots.map((dot) => where(state, dot)));
   }
   destroy() {
+    cancelAnimationFrame(this.raf);
+    this.raf = null;
+    this.observer.disconnect();
   }
 };
 
@@ -779,7 +898,7 @@ var DOT_NAMES = {
   mine: "your request"
 };
 var View = class {
-  constructor(root, lesson, { renderMarkdown = plainMarkdown, onFullscreen = null } = {}) {
+  constructor(root, lesson, { renderMarkdown = plainMarkdown, onFullscreen = null, reduceMotion = false } = {}) {
     this.root = root;
     this.lesson = lesson;
     this.renderMarkdown = renderMarkdown;
@@ -795,7 +914,7 @@ var View = class {
     this.pauseButton = this.toolButton("pause", "Pause", () => this.togglePause());
     const tools = h("div", { cls: "stepper-tools" }, [this.toolButton("rotate-ccw", "Replay", () => this.player.replay()), this.pauseButton]);
     const stageBox = h("div", { cls: "stepper-stage-box" }, [this.chips, tools, this.card, this.legend]);
-    this.player = new Player(stageBox);
+    this.player = new Player(stageBox, { reduceMotion });
     this.timeline = h("ol", { cls: "stepper-timeline" });
     this.panel = h("div", { cls: "stepper-panel" });
     this.goals = h("ul", { cls: "stepper-goals" });

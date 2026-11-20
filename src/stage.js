@@ -4,6 +4,8 @@ import { SHAPE_DRAWERS } from './shapes/index.js';
 import { depth } from './iso.js';
 import { fit, viewBox } from './camera.js';
 import { drawLink, drawLinkLabel } from './links.js';
+import { DOTS } from './colors.js';
+import { r2 } from './svg.js';
 
 let counter = 0;
 
@@ -81,6 +83,11 @@ export class Stage {
     if (labels !== this.labelsHtml) { this.labelLayer.innerHTML = labels; this.labelsHtml = labels; }
   }
 
+  // Draw the moving dots and the short effects (arrival rings, fail bursts). Called every frame.
+  drawDots(dots, effects) {
+    this.layers.dots.innerHTML = dots.map(drawDot).join('') + effects.map(drawEffect).join('');
+  }
+
   // The view that shows all these shapes.
   fitView(shapes) {
     return fit(shapes.map(shape => SHAPE_DRAWERS[shape.type].bounds(shape)));
@@ -93,3 +100,25 @@ export class Stage {
 }
 
 const svgEl = name => document.createElementNS('http://www.w3.org/2000/svg', name);
+
+function drawDot({ x, y, kind }) {
+  const color = DOTS[kind] ?? DOTS.req;
+  x = r2(x); y = r2(y);
+  if (kind === 'msg' || kind === 'poison') return `<rect x="${x - 4}" y="${y - 4}" width="8" height="8" rx="1.5" fill="${color}" class="st-dot"/>`;
+  if (kind === 'heavy') return `<rect x="${x - 5.5}" y="${y - 5.5}" width="11" height="11" rx="2" fill="${color}" class="st-dot"/>`;
+  if (kind === 'ping') return `<circle cx="${x}" cy="${y}" r="4.5" fill="none" stroke="${color}" stroke-width="2"/>`;
+  if (kind === 'fail') return failMark(x, y, 1);
+  return `<circle cx="${x}" cy="${y}" r="4.5" fill="${color}" class="st-dot"/>`;
+}
+
+// age goes from 0 to 1 over the effect's life.
+function drawEffect({ type, x, y, age }) {
+  x = r2(x); y = r2(y);
+  if (type === 'fail') return failMark(x, y, 1 - age);
+  return `<circle cx="${x}" cy="${y}" r="${r2(4 + age * 10)}" class="st-ring" opacity="${r2(1 - age)}"/>`;
+}
+
+function failMark(x, y, opacity) {
+  return `<g opacity="${r2(opacity)}"><circle cx="${x}" cy="${y}" r="6.5" class="st-fail"/>` +
+    `<path d="M${x - 2.6},${y - 2.6} L${x + 2.6},${y + 2.6} M${x + 2.6},${y - 2.6} L${x - 2.6},${y + 2.6}" class="st-fail-x"/></g>`;
+}
