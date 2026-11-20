@@ -71,6 +71,15 @@ The code is plain JavaScript. Start reading at `src/main.js`. Each file begins w
 - [x] Browser preview page (`npm run preview`)
 - [x] Unit tests (7 more, 14 total)
 
+### Phase 4: Arrows and labels
+- [x] Links between shapes that stop at each shape's edge
+- [x] Corners through `via` points, rounded
+- [x] Arrowheads: `end`, `both`, `none`
+- [x] Styles: `solid`, `dashed`, `off`, `beat` (pulsing), `cut` (red ✕)
+- [x] Label pills on links, always drawn on top
+- [x] Name pills under crowds and databases, tags above shapes
+- [x] Unit tests (4 more, 18 total)
+
 ## Credits
 
 Icons from [Lucide](https://lucide.dev) (ISC license). The look was inspired by the *Designed to Scale* course by Dilum Sanjaya. No code or artwork was copied from it.

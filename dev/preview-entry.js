@@ -9,4 +9,5 @@ const root = document.getElementById('root');
 const stage = new Stage(root);
 const shapes = Object.values(step.scene);
 stage.drawShapes(shapes);
+stage.drawLinks(Object.values(step.links), step.scene);
 stage.setView(stage.fitView(shapes));

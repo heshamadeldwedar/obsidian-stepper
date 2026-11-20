@@ -3,6 +3,7 @@
 import { SHAPE_DRAWERS } from './shapes/index.js';
 import { depth } from './iso.js';
 import { fit, viewBox } from './camera.js';
+import { drawLink, drawLinkLabel } from './links.js';
 
 let counter = 0;
 
@@ -32,6 +33,9 @@ export class Stage {
     this.layers = {};
     for (const name of ['floor', 'links', 'dots', 'shapes', 'over']) this.layers[name] = this.svg.querySelector(`.st-layer-${name}`);
     this.drawn = new Map(); // id → { g, overlay, html }
+    // Link labels go on top of everything, after the shape overlays.
+    this.labelLayer = svgEl('g');
+    this.svg.appendChild(this.labelLayer);
   }
 
   // Draw every shape in `shapes` (a list of shape states). Removes shapes that are no longer listed.
@@ -61,6 +65,20 @@ export class Stage {
     for (const [id, entry] of this.drawn) {
       if (!seen.has(id)) { entry.g.remove(); entry.overlay.remove(); this.drawn.delete(id); }
     }
+  }
+
+  // Draw the arrows. `opacity` (optional) maps a link id to how visible it is, for fading in and out.
+  drawLinks(links, scene, opacity = {}) {
+    let lines = '';
+    let labels = '';
+    for (const link of links) {
+      const fade = opacity[link.id] ?? 1;
+      if (fade <= 0.01) continue;
+      lines += `<g opacity="${fade}">${drawLink(link, scene, this.arrowId)}</g>`;
+      labels += `<g opacity="${fade}">${drawLinkLabel(link, scene)}</g>`;
+    }
+    if (lines !== this.linesHtml) { this.layers.links.innerHTML = lines; this.linesHtml = lines; }
+    if (labels !== this.labelsHtml) { this.labelLayer.innerHTML = labels; this.labelsHtml = labels; }
   }
 
   // The view that shows all these shapes.

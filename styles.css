@@ -75,3 +75,13 @@
 .stepper .st-good { fill: #7fc278; }
 .stepper .st-warn { fill: #efb041; }
 .stepper .st-bad { fill: var(--st-red); }
+
+/* Links (arrows) */
+.stepper .st-link { fill: none; stroke: var(--st-ink); stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.stepper .st-link-dashed { stroke-dasharray: 6 5; stroke-opacity: 0.7; }
+.stepper .st-link-off { stroke: none; }
+.stepper .st-link-beat { stroke-dasharray: 4 6; animation: stepper-beat 1.2s linear infinite; }
+.stepper .st-link-cut { stroke: var(--st-red); stroke-dasharray: 10 6; }
+.stepper .st-link-cut-mark { stroke: var(--st-red); stroke-width: 3; stroke-linecap: round; }
+.stepper .st-arrow-head { fill: none; stroke: var(--st-ink); stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+@keyframes stepper-beat { to { stroke-dashoffset: -20; } }

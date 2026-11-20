@@ -26,6 +26,7 @@ class StepperBlock extends MarkdownRenderChild {
       const stage = new Stage(root);
       const shapes = Object.values(lesson.steps[0].scene);
       stage.drawShapes(shapes);
+      stage.drawLinks(Object.values(lesson.steps[0].links), lesson.steps[0].scene);
       stage.setView(stage.fitView(shapes));
     } catch (error) {
       showError(root, error);
