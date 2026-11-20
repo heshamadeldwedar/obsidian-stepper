@@ -96,7 +96,13 @@
 .stepper-body { display: grid; gap: 12px; margin-top: 12px; }
 .stepper-main, .stepper-side { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
 @container (min-width: 860px) {
-  .stepper-body { grid-template-columns: minmax(0, 1fr) 300px; }
+  .stepper-body { grid-template-columns: minmax(0, 1fr) 290px; }
+  /* The side column takes the diagram column's height and never sets it (height 0 + min-height 100%),
+     so the block keeps the same size on every step. Long step text scrolls inside the panel. */
+  .stepper-side { height: 0; min-height: 100%; }
+  .stepper-panel { flex: 1; min-height: 0; }
+  .stepper-panel-content { overflow-y: auto; min-height: 0; padding-right: 6px; scrollbar-width: thin; }
+  .stepper-stage-box { aspect-ratio: 16 / 10.5; }
 }
 .stepper button { font-family: var(--st-font); cursor: pointer; }
 .stepper-icon { display: inline-flex; vertical-align: -2px; }
@@ -174,7 +180,7 @@
 .stepper-back:disabled, .stepper-next:disabled { opacity: 0.45; cursor: default; box-shadow: none; }
 .stepper-hint { font-size: 11px; color: var(--st-muted); text-align: center; }
 .stepper-goals-box { padding: 12px 14px; border: 1px solid var(--st-line); border-radius: 12px; background: var(--st-card); }
-.stepper-goals { list-style: none; margin: 8px 0 0; padding: 0; display: flex; flex-direction: column; gap: 5px; font-size: 12px; color: var(--st-muted); }
+.stepper-goals { list-style: none; margin: 8px 0 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 5px 18px; font-size: 12px; color: var(--st-muted); }
 .stepper-goals li { display: flex; gap: 8px; align-items: center; }
 .stepper-goals li.is-done { color: var(--st-ink); }
 .stepper-goal-box { width: 14px; height: 14px; flex: none; display: inline-grid; place-items: center; border: 1.3px solid var(--st-line-strong); border-radius: 3px; }
@@ -280,3 +286,9 @@
 .stepper-card[data-corner="bottom-left"] { right: auto; left: 12px; bottom: 36px; }
 .stepper-card[data-corner="top-right"] { bottom: auto; top: 72px; }
 .stepper-card[data-corner="top-left"] { bottom: auto; top: 72px; right: auto; left: 12px; }
+
+/* Narrow: diagram, timeline, step panel, then goals last */
+@container (max-width: 859px) {
+  .stepper-main { display: contents; }
+  .stepper-goals-box { order: 1; }
+}

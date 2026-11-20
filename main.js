@@ -1473,9 +1473,10 @@ var View = class {
     this.timeline = h("ol", { cls: "stepper-timeline" });
     this.panel = h("div", { cls: "stepper-panel" });
     this.goals = h("ul", { cls: "stepper-goals" });
+    const goalsBox = lesson.goals.length ? h("div", { cls: "stepper-goals-box" }, [h("div", { cls: "stepper-eyebrow", text: "You'll learn" }), this.goals]) : null;
     root.append(h("div", { cls: "stepper-body" }, [
-      h("div", { cls: "stepper-main" }, [stageBox, h("div", { cls: "stepper-timeline-box" }, [h("div", { cls: "stepper-eyebrow", text: "In this lesson" }), this.timeline])]),
-      h("div", { cls: "stepper-side" }, [this.panel, lesson.goals.length ? h("div", { cls: "stepper-goals-box" }, [h("div", { cls: "stepper-eyebrow", text: "You'll learn" }), this.goals]) : null])
+      h("div", { cls: "stepper-main" }, [stageBox, h("div", { cls: "stepper-timeline-box" }, [h("div", { cls: "stepper-eyebrow", text: "In this lesson" }), this.timeline]), goalsBox]),
+      h("div", { cls: "stepper-side" }, [this.panel])
     ]));
     this.buildChips();
     this.buildTimeline();
@@ -1598,6 +1599,7 @@ var View = class {
       ]),
       h("div", { cls: "stepper-hint", text: "\u2190 \u2192 step \xB7 R replay \xB7 Space pause \xB7 Ctrl+wheel zoom \xB7 0 reset" })
     );
+    this.panel.querySelector(".stepper-panel-content").scrollTop = 0;
     this.panel.querySelector(".stepper-back").disabled = step.index === 0;
     this.panel.querySelector(".stepper-next").disabled = !next;
   }
