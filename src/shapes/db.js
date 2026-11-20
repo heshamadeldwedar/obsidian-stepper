@@ -39,7 +39,8 @@ export function draw(shape) {
     tag('ellipse', { cx: top.cx, cy: top.cy, rx, ry, fill: colors.top }) +
     tag('path', { d: side, class: 'st-edge' }) +
     tag('ellipse', { cx: top.cx, cy: top.cy, rx, ry, class: 'st-edge' }) +
-    icon(shape.glyph, top.cx, top.cy + shape.h / 2 + ry * 0.5, 16)
+    // Centered on the front face: it runs from the top ellipse's lower edge down to the bottom ellipse's lower edge.
+    icon(shape.glyph, top.cx, top.cy + ry + shape.h / 2, 18)
   );
 }
 

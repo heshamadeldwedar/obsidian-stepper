@@ -537,7 +537,8 @@ function draw3(shape) {
   const colors = shapeColors(shape);
   const { rx, ry } = top;
   const side = `M${top.cx - rx},${top.cy} L${bottom.cx - rx},${bottom.cy} A${rx},${ry} 0 0 0 ${bottom.cx + rx},${bottom.cy} L${top.cx + rx},${top.cy}`;
-  return tag("ellipse", { cx: shadow.cx, cy: shadow.cy + 5, rx, ry, class: "st-shadow" }) + tag("path", { d: side + " Z", fill: colors.side }) + tag("ellipse", { cx: top.cx, cy: top.cy, rx, ry, fill: colors.top }) + tag("path", { d: side, class: "st-edge" }) + tag("ellipse", { cx: top.cx, cy: top.cy, rx, ry, class: "st-edge" }) + icon(shape.glyph, top.cx, top.cy + shape.h / 2 + ry * 0.5, 16);
+  return tag("ellipse", { cx: shadow.cx, cy: shadow.cy + 5, rx, ry, class: "st-shadow" }) + tag("path", { d: side + " Z", fill: colors.side }) + tag("ellipse", { cx: top.cx, cy: top.cy, rx, ry, fill: colors.top }) + tag("path", { d: side, class: "st-edge" }) + tag("ellipse", { cx: top.cx, cy: top.cy, rx, ry, class: "st-edge" }) + // Centered on the front face: it runs from the top ellipse's lower edge down to the bottom ellipse's lower edge.
+  icon(shape.glyph, top.cx, top.cy + ry + shape.h / 2, 18);
 }
 function overlay3(shape) {
   const [x, y] = shape.at;
