@@ -769,6 +769,9 @@ function between(a, b, t) {
   return { x: at("x"), y: at("y"), w: at("w"), h: at("h") };
 }
 var viewBox = (v) => [v.x, v.y, v.w, v.h].map((n) => Math.round(n * 10) / 10).join(" ");
+function recenter(view, size) {
+  return { x: view.x + view.w / 2 - size.w / 2, y: view.y + view.h / 2 - size.h / 2, w: size.w, h: size.h };
+}
 
 // src/links.js
 function floorRoute(link, from, to) {
@@ -1296,7 +1299,7 @@ var Player = class {
     const from = this.step;
     this.step = step;
     this.stage.resetZoom();
-    const toView = this.stage.fitView(Object.values(step.scene), { top: 0.16, right: step.card ? 0.3 : 0, bottom: step.card ? 0.2 : 0 });
+    const toView = this.viewFor(step);
     if (!from || !animate || this.reduceMotion) {
       this.change = null;
       this.oldFlows = [];
@@ -1309,6 +1312,22 @@ var Player = class {
       this.spots = spotsFor(this.change.plan);
     }
     this.wake();
+  }
+  // One zoom level for the whole lesson, so stepping through never zooms in and out:
+  // the camera only pans to center each step's shapes (like the reference). Call once with all steps.
+  prepare(steps) {
+    const views = steps.map((step) => this.fitStep({ ...step, card: null }));
+    this.size = { w: Math.max(...views.map((v) => v.w)), h: Math.max(...views.map((v) => v.h)) };
+  }
+  // The view that fits one step, keeping shapes out from under the numbers bar (top)
+  // and the napkin card (bottom right).
+  fitStep(step) {
+    return this.stage.fitView(Object.values(step.scene), { top: 0.16, right: step.card ? 0.3 : 0, bottom: step.card ? 0.2 : 0 });
+  }
+  // The step's view at the lesson's zoom level, centered on the step's shapes.
+  viewFor(step) {
+    const fit2 = this.fitStep(step);
+    return this.size ? recenter(fit2, this.size) : fit2;
   }
   // Play the change into the current step again, from `previous` (or just restart the dots on the first step).
   replay(previous) {
@@ -1444,6 +1463,7 @@ var View = class {
     const toolBar = h("div", { cls: "stepper-tools" }, [this.toolButton("rotate-ccw", "Replay", () => this.replay()), this.pauseButton]);
     const stageBox = h("div", { cls: "stepper-stage-box" }, [this.chips, tools ? toolBar : null, this.card, this.legend]);
     this.player = new Player(stageBox, { reduceMotion, speed });
+    this.player.prepare(lesson.steps);
     this.timeline = h("ol", { cls: "stepper-timeline" });
     this.panel = h("div", { cls: "stepper-panel" });
     this.goals = h("ul", { cls: "stepper-goals" });

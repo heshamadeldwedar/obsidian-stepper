@@ -26,3 +26,8 @@ export function between(a, b, t) {
 }
 
 export const viewBox = v => [v.x, v.y, v.w, v.h].map(n => Math.round(n * 10) / 10).join(' ');
+
+// The same view, resized to `size` ({ w, h }) around its own center. Used to keep one zoom level per lesson.
+export function recenter(view, size) {
+  return { x: view.x + view.w / 2 - size.w / 2, y: view.y + view.h / 2 - size.h / 2, w: size.w, h: size.h };
+}

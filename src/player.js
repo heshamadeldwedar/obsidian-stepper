@@ -3,6 +3,7 @@
 import { Stage } from './stage.js';
 import { startFlow, tick, routePoints, where } from './dots.js';
 import { planChange, stateAt, TIMING } from './transition.js';
+import { recenter } from './camera.js';
 
 const EFFECT_SECONDS = { arrive: 0.45, fail: 0.6 };
 const SPOT_SECONDS = 1.5;
@@ -40,8 +41,7 @@ export class Player {
     const from = this.step;
     this.step = step;
     this.stage.resetZoom();
-    // Keep shapes out from under the numbers bar (top) and the napkin card (bottom right).
-    const toView = this.stage.fitView(Object.values(step.scene), { top: 0.16, right: step.card ? 0.3 : 0, bottom: step.card ? 0.2 : 0 });
+    const toView = this.viewFor(step);
     if (!from || !animate || this.reduceMotion) {
       this.change = null;
       this.oldFlows = [];
@@ -55,6 +55,26 @@ export class Player {
       this.spots = spotsFor(this.change.plan);
     }
     this.wake();
+  }
+
+  // One zoom level for the whole lesson, so stepping through never zooms in and out:
+  // the camera only pans to center each step's shapes (like the reference). Call once with all steps.
+  prepare(steps) {
+    // Measured without the napkin card's corner: a card step pans to make room instead of zooming out.
+    const views = steps.map(step => this.fitStep({ ...step, card: null }));
+    this.size = { w: Math.max(...views.map(v => v.w)), h: Math.max(...views.map(v => v.h)) };
+  }
+
+  // The view that fits one step, keeping shapes out from under the numbers bar (top)
+  // and the napkin card (bottom right).
+  fitStep(step) {
+    return this.stage.fitView(Object.values(step.scene), { top: 0.16, right: step.card ? 0.3 : 0, bottom: step.card ? 0.2 : 0 });
+  }
+
+  // The step's view at the lesson's zoom level, centered on the step's shapes.
+  viewFor(step) {
+    const fit = this.fitStep(step);
+    return this.size ? recenter(fit, this.size) : fit;
   }
 
   // Play the change into the current step again, from `previous` (or just restart the dots on the first step).

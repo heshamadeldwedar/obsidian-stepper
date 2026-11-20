@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { project, roundedPath, box, depth } from '../src/iso.js';
-import { fit, between } from '../src/camera.js';
+import { fit, between, recenter } from '../src/camera.js';
 import { mix, shapeColors } from '../src/colors.js';
 import { esc, tag, pill } from '../src/svg.js';
 import { SHAPE_DRAWERS } from '../src/shapes/index.js';
@@ -58,4 +58,9 @@ test('every shape type draws, has bounds and stays inside its layer', () => {
     assert.ok(drawer.outline(shape).length >= 3, `${type} outline`);
     assert.equal(typeof drawer.overlay(shape), 'string');
   }
+});
+
+test('recenter keeps the center and changes the size (one zoom level per lesson)', () => {
+  const view = recenter({ x: 0, y: 0, w: 100, h: 50 }, { w: 300, h: 150 });
+  assert.deepEqual(view, { x: -100, y: -50, w: 300, h: 150 });
 });

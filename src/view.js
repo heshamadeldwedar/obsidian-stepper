@@ -39,6 +39,7 @@ export class View {
     const toolBar = h('div', { cls: 'stepper-tools' }, [this.toolButton('rotate-ccw', 'Replay', () => this.replay()), this.pauseButton]);
     const stageBox = h('div', { cls: 'stepper-stage-box' }, [this.chips, tools ? toolBar : null, this.card, this.legend]);
     this.player = new Player(stageBox, { reduceMotion, speed });
+    this.player.prepare(lesson.steps);
     this.timeline = h('ol', { cls: 'stepper-timeline' });
     this.panel = h('div', { cls: 'stepper-panel' });
     this.goals = h('ul', { cls: 'stepper-goals' });
