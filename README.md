@@ -144,7 +144,7 @@ The code is plain JavaScript. Start reading at `src/main.js`. Each file begins w
 ### Phase 10: Example and release
 - [x] Full example lesson: `examples/napkin-math.md` (7 steps, our own words)
 - [x] Test that every published example (README, format guide, examples, insert command) is a valid lesson
-- [x] Acceptance check: 8 actions by accessible name (Next ×3, Pause, Play, timeline, Back, Replay), no errors
+- [x] Acceptance: Jev did all 8 actions (Next ×3, Pause, Play, timeline, Back, Replay) in 2.3 s from plain-English instructions; headless check, no errors
 - [x] Performance: 3 blocks at 0.1 ms of plugin work per frame; zero work when off screen
 - [x] Version 1.0.0, GitHub release with `main.js`, `manifest.json`, `styles.css`
 - [x] Unit tests: 37 total
