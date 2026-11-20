@@ -59,6 +59,18 @@ The code is plain JavaScript. Start reading at `src/main.js`. Each file begins w
 - [x] Errors say where: `steps[2].scene.s0: unknown type "srvr"`
 - [x] Unit tests (7)
 
+### Phase 3: Drawing
+- [x] Isometric math: floor (x, y) and height z → screen
+- [x] Rounded corners everywhere (the hand-drawn look)
+- [x] Shapes: `block` (3D box with icon and label), `crowd` (people on a platform), `db` (cylinder), `zone` (dashed area, name on the floor)
+- [x] Colors, and `heat` turning a shape red
+- [x] CPU gauge pill above a block
+- [x] Dotted isometric grid that fades at the edges
+- [x] Camera fits everything in view
+- [x] 67 Lucide icons bundled (no runtime library)
+- [x] Browser preview page (`npm run preview`)
+- [x] Unit tests (7 more, 14 total)
+
 ## Credits
 
 Icons from [Lucide](https://lucide.dev) (ISC license). The look was inspired by the *Designed to Scale* course by Dilum Sanjaya. No code or artwork was copied from it.

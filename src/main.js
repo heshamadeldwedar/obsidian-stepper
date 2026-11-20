@@ -1,6 +1,7 @@
 // The only file that talks to Obsidian. It finds ```stepper blocks and puts a diagram in their place.
 import { Plugin, MarkdownRenderChild, parseYaml } from 'obsidian';
 import { readLesson } from './lesson.js';
+import { Stage } from './stage.js';
 
 export default class StepperPlugin extends Plugin {
   async onload() {
@@ -22,7 +23,10 @@ class StepperBlock extends MarkdownRenderChild {
     try {
       const lesson = readLesson(parseYaml(this.source));
       root.createDiv({ cls: 'stepper-title', text: lesson.title });
-      root.createDiv({ text: `${lesson.steps.length} steps` });
+      const stage = new Stage(root);
+      const shapes = Object.values(lesson.steps[0].scene);
+      stage.drawShapes(shapes);
+      stage.setView(stage.fitView(shapes));
     } catch (error) {
       showError(root, error);
     }

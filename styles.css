@@ -1,18 +1,77 @@
-/* Stepper plugin styles. Every rule starts with .stepper so nothing leaks into your theme. */
+/* Stepper plugin styles. Every rule starts with .stepper so nothing leaks into your theme.
+   Colors are variables at the top; dark mode only changes the variables. */
 
 .stepper {
-  border: 1.5px solid var(--text-normal);
+  --st-paper: #f4ebe0;
+  --st-sheet: #f9f2e8;
+  --st-card: #f8f0e6;
+  --st-line: #ddd3c5;
+  --st-line-strong: #c6bbac;
+  --st-ink: #1d1b18;
+  --st-muted: #6f6961;
+  --st-green: #cfe3b2;
+  --st-green-ink: #2a5a1f;
+  --st-violet: #e7ddf5;
+  --st-orange: #fcdcbd;
+  --st-red: #e5534b;
+  --st-red-soft: #f8d5cf;
+  --st-amber: #e3ae3c;
+  --st-grid: rgba(70, 60, 45, 0.13);
+  --st-zone-fill: rgba(255, 250, 242, 0.55);
+  --st-shadow: rgba(107, 82, 54, 0.22);
+  --st-font: "JetBrains Mono", var(--font-monospace, ui-monospace), monospace;
+
+  font-family: var(--st-font);
+  color: var(--st-ink);
+  background: var(--st-sheet);
+  border: 1.5px solid var(--st-ink);
   border-radius: 12px;
-  padding: 16px;
+  padding: 14px;
 }
 
-.stepper-title {
-  font-weight: 800;
-  font-size: 1.4em;
-}
+.stepper-title { font-weight: 800; font-size: 1.4em; }
+.stepper-error { color: var(--text-error, #c0392b); font-family: var(--st-font); white-space: pre-wrap; }
 
-.stepper-error {
-  color: var(--text-error);
-  font-family: var(--font-monospace);
-  white-space: pre-wrap;
+/* The diagram */
+.stepper-stage {
+  position: relative;
+  background: var(--st-paper);
+  border: 1px solid var(--st-line);
+  border-radius: 12px;
+  overflow: hidden;
+  aspect-ratio: 16 / 10;
+  min-height: 300px;
 }
+.stepper-svg { width: 100%; height: 100%; display: block; }
+.stepper .st-grid-line { fill: none; stroke: var(--st-grid); stroke-width: 0.8; }
+
+.stepper .st-edge { fill: none; stroke: var(--st-ink); stroke-width: 1.9; stroke-linejoin: round; }
+.stepper .st-edge-thin { stroke: var(--st-ink); stroke-width: 1.4; }
+.stepper .st-head { fill: #fffaf2; stroke: var(--st-ink); stroke-width: 1.4; }
+.stepper .st-shade { fill: #3a2a14; opacity: 0.06; }
+.stepper .st-shadow { fill: var(--st-shadow); filter: blur(5px); }
+.stepper .st-icon { fill: none; stroke: var(--st-ink); stroke-linecap: round; stroke-linejoin: round; }
+.stepper .st-ink { fill: var(--st-ink); font-family: var(--st-font); }
+.stepper .st-muted { fill: var(--st-muted); font-family: var(--st-font); }
+.stepper .st-dead path { stroke: #c0392b; stroke-width: 4; stroke-linecap: round; }
+
+.stepper .st-zone { fill: var(--st-zone-fill); stroke: var(--st-ink); stroke-opacity: 0.55; stroke-width: 1.5; stroke-dasharray: 6 5; }
+.stepper .st-floor-text { fill: var(--st-muted); letter-spacing: 1.6px; font-family: var(--st-font); }
+
+/* Pills: labels, tags and the CPU gauge */
+.stepper .st-pill-bg { fill: #fbf6ef; stroke: var(--st-ink); stroke-width: 1.3; }
+.stepper .st-pill-shadow { fill: var(--st-ink); }
+.stepper .st-pill-text { fill: var(--st-ink); font-family: var(--st-font); }
+.stepper .st-pill-icon { fill: none; stroke: var(--st-ink); stroke-linecap: round; stroke-linejoin: round; }
+.stepper .st-tone-green .st-pill-bg { fill: #dcefd2; }
+.stepper .st-tone-green .st-pill-text { fill: var(--st-green-ink); }
+.stepper .st-tone-red .st-pill-bg { fill: var(--st-red-soft); }
+.stepper .st-tone-red .st-pill-text { fill: #8f2a22; }
+.stepper .st-tone-red .st-pill-icon { stroke: #8f2a22; }
+.stepper .st-tone-amber .st-pill-bg { fill: #fbe5bd; }
+.stepper .st-tone-violet .st-pill-bg { fill: var(--st-violet); }
+.stepper .st-tone-gray .st-pill-bg { fill: #ebe5dd; }
+.stepper .st-gauge-track { fill: var(--st-line); }
+.stepper .st-good { fill: #7fc278; }
+.stepper .st-warn { fill: #efb041; }
+.stepper .st-bad { fill: var(--st-red); }
