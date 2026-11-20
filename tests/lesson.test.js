@@ -76,3 +76,8 @@ test('callouts, cards and goals', () => {
   assert.deepEqual(lesson.steps[0].card.lines, ['1 + 1', '= 2']);
   assert.deepEqual(lesson.goals, [{ text: 'Requests per second', step: 1 }]);
 });
+
+test('legend entries can have their own name', () => {
+  const lesson = readLesson({ legend: ['req', ['slow', 'cache miss']], steps: [{ title: 'A' }] });
+  assert.deepEqual(lesson.legend, [{ kind: 'req', name: null }, { kind: 'slow', name: 'cache miss' }]);
+});

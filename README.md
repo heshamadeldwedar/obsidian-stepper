@@ -160,6 +160,7 @@ The code is plain JavaScript. Start reading at `src/main.js`. Each file begins w
 - [x] Database cylinder: no stray line across its top
 - [x] Links stop just outside each shape's outline on screen, so both arrowheads always show
 - [x] Dots passing through a shape between two links are hidden (no jumping across the shape)
+- [x] 105 Lucide icons bundled; legend entries can carry their own name (`[slow, cache miss]`)
 - [x] Wide blocks keep the same height on every step: the step panel follows the left column's height and long text scrolls inside it (Back / Next stay pinned); a bigger diagram; "You'll learn" moved under the timeline
 - [x] One camera per lesson: it fits every step, so the picture never moves or zooms between steps and every step has the same margins
 - [x] Labels find their own space: each one tries spots along its line and on both sides, and takes the one that overlaps shapes, other labels and lines the least

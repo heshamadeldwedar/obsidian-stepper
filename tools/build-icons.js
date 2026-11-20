@@ -9,6 +9,10 @@ const NAMES = [
   'smartphone', 'laptop', 'cloud', 'list-ordered', 'git-branch', 'bell', 'search', 'file', 'credit-card', 'shopping-cart',
   'hourglass', 'timer', 'split', 'filter', 'eye', 'bug', 'heart-pulse', 'workflow', 'inbox', 'hash', 'scale', 'route',
   'signpost', 'refresh-cw', 'settings', 'chart-column', 'gift', 'car', 'image', 'video', 'radio', 'boxes', 'braces',
+  'shopping-cart', 'chart-line', 'circle-check', 'dollar-sign', 'eye-off', 'file-key', 'git-commit-horizontal', 'id-card',
+  'sheet', 'signal', 'siren', 'toggle-left', 'user-check', 'zoom-in', 'lock-keyhole', 'skull', 'scroll', 'flask-conical',
+  'plane', 'hotel', 'hammer', 'waves', 'wifi', 'unplug', 'share-2', 'ticket', 'sigma', 'map', 'moon', 'power', 'rocket',
+  'waypoints', 'building', 'bot', 'ban', 'merge', 'undo-2', 'clipboard',
 ];
 
 const lines = NAMES.map(name => {

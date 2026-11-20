@@ -62,7 +62,11 @@ export function readLesson(data) {
     subtitle: String(data.subtitle ?? ''),
     tags: data.tags ?? {},
     metrics: readMetricList(data.metrics),
-    legend: (data.legend ?? []).map(kind => oneOf(kind, DOT_KINDS, 'legend')),
+    // A legend entry is a dot kind, or [kind, name] to give it a name of its own.
+    legend: (data.legend ?? []).map(entry => {
+      const [kind, name] = Array.isArray(entry) ? entry : [entry, null];
+      return { kind: oneOf(kind, DOT_KINDS, 'legend'), name };
+    }),
     goals: (data.goals ?? []).map((goal, i) => ({ text: String(goal.text ?? goal), step: Number(goal.step ?? 1) - 1 })),
     steps,
   };

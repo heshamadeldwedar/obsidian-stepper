@@ -95,10 +95,10 @@ export class View {
   }
 
   buildLegend() {
-    for (const kind of this.lesson.legend) {
+    for (const { kind, name } of this.lesson.legend) {
       const mark = h('span', { cls: `stepper-legend-mark stepper-dot-${kind}` });
       mark.style.background = DOTS[kind];
-      this.legend.append(h('span', { cls: 'stepper-legend-item' }, [mark, DOT_NAMES[kind]]));
+      this.legend.append(h('span', { cls: 'stepper-legend-item' }, [mark, name ?? DOT_NAMES[kind]]));
     }
   }
 

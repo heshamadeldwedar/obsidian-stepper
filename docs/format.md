@@ -60,7 +60,7 @@ steps:
 | `subtitle` | One line under the title |
 | `tags` | `{ minutes: 10, level: beginner }`, shown as small pills |
 | `metrics` | The numbers bar. `key: { label, icon }` or just `key: Label` |
-| `legend` | Dot kinds to explain under the diagram: `[req, fail]` |
+| `legend` | Dot kinds to explain under the diagram: `[req, fail]`. Give one its own name with `[slow, cache miss]` |
 | `goals` | "You'll learn" list. Each goal gets ticked at its `step` (counting from 1) |
 | `steps` | The list of steps |
 
