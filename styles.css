@@ -188,3 +188,8 @@
 .stepper .st-ring { fill: none; stroke: #7fc278; stroke-width: 2; }
 .stepper .st-fail { fill: var(--st-red); stroke: var(--st-ink); stroke-width: 1.2; }
 .stepper .st-fail-x { stroke: #fff; stroke-width: 1.8; stroke-linecap: round; }
+
+/* Devices and ghosts */
+.stepper .st-device-frame { fill: #3b3631; stroke: var(--st-ink); stroke-width: 1.6; }
+.stepper .st-device-glass { fill: #e9e1f5; }
+.stepper .st-ghost { fill: rgba(255, 250, 242, 0.35); stroke: var(--st-ink); stroke-opacity: 0.5; stroke-width: 1.5; stroke-dasharray: 5 4; }

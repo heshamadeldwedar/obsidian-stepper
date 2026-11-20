@@ -382,8 +382,8 @@ function shapeColors(shape) {
 }
 
 // src/shapes/common.js
-function tagsAbove(x, y, items) {
-  return items.map(([kind, item], i) => {
+function tagsAbove(x, y, items2) {
+  return items2.map(([kind, item], i) => {
     const at = y - i * 26;
     return kind === "cpu" ? cpuGauge(x, at, item) : pill(x, at, item.text ?? item, { icon: item.icon, tone: item.tone ?? "paper" });
   }).join("");
@@ -423,11 +423,11 @@ function draw(shape) {
 function overlay(shape) {
   const [x, y] = shape.at;
   const [, topY] = project(x - shape.s / 2, y + shape.s / 2, shape.h + shape.lift);
-  const items = [];
-  if (shape.cpu >= 0) items.push(["cpu", shape.cpu]);
-  for (const t of shape.tags ?? []) items.push(["tag", t]);
-  if (shape.dead > 0.5) items.push(["tag", { text: "DOWN", tone: "red", icon: "triangle-alert" }]);
-  return tagsAbove(project(x, y, 0)[0], topY - 16, items);
+  const items2 = [];
+  if (shape.cpu >= 0) items2.push(["cpu", shape.cpu]);
+  for (const t of shape.tags ?? []) items2.push(["tag", t]);
+  if (shape.dead > 0.5) items2.push(["tag", { text: "DOWN", tone: "red", icon: "triangle-alert" }]);
+  return tagsAbove(project(x, y, 0)[0], topY - 16, items2);
 }
 function deadMark(cx, cy, amount) {
   return tag(
@@ -552,8 +552,134 @@ function draw4(shape) {
 }
 var overlay4 = () => "";
 
+// src/shapes/queue.js
+var queue_exports = {};
+__export(queue_exports, {
+  bounds: () => bounds5,
+  draw: () => draw5,
+  layer: () => layer5,
+  overlay: () => overlay5,
+  reach: () => reach5
+});
+var layer5 = "shapes";
+var GAP = 1.25;
+var reach5 = () => 1;
+function items(shape) {
+  const [dx, dy] = shape.dir;
+  const length = Math.hypot(dx, dy) || 1;
+  return Array.from({ length: shape.n }, (_, i) => [shape.at[0] + dx / length * GAP * i, shape.at[1] + dy / length * GAP * i]);
+}
+function bounds5(shape) {
+  return boundsOf(items(shape).flatMap(([x, y]) => [project(x - 1, y - 1, 0), project(x + 1, y + 1, 30)]));
+}
+function draw5(shape) {
+  const colors = shapeColors(shape);
+  const list = items(shape).sort((a, b) => a[0] - a[1] - (b[0] - b[1]));
+  const boxes = list.map(([x, y]) => {
+    const g = box(x, y, 0.85, 0.85, 9);
+    return tag("path", { d: roundedPath(g.outline, 3), fill: colors.side }) + tag("path", { d: roundedPath(g.top, 3), fill: colors.top }) + tag("path", { d: roundedPath(g.outline, 3), class: "st-edge-thin", fill: "none" });
+  }).join("");
+  if (!shape.label) return boxes;
+  const alongX = Math.abs(shape.dir[0]) >= Math.abs(shape.dir[1]);
+  const [tx, ty] = project(shape.at[0] + (alongX ? 0 : 1.1), shape.at[1] - (alongX ? 1.1 : 0));
+  const matrix = alongX ? `matrix(1 0.5 -1 0.5 ${r2(tx)} ${r2(ty)})` : `matrix(1 -0.5 1 0.5 ${r2(tx)} ${r2(ty)})`;
+  return boxes + `<text class="st-floor-text" transform="${matrix}" font-size="10" font-weight="800">${esc(String(shape.label).toUpperCase())}</text>`;
+}
+var overlay5 = () => "";
+
+// src/shapes/device.js
+var device_exports = {};
+__export(device_exports, {
+  bounds: () => bounds6,
+  draw: () => draw6,
+  layer: () => layer6,
+  overlay: () => overlay6,
+  reach: () => reach6
+});
+var layer6 = "shapes";
+var SIZES = { laptop: { w: 3.4, d: 2.6, screen: 2.8, tall: 30 }, phone: { w: 2.6, d: 2.6, screen: 1.3, tall: 38 } };
+var BASE = 6;
+var reach6 = (shape) => SIZES[shape.kind]?.w * 0.6;
+function bounds6(shape) {
+  const size = SIZES[shape.kind] ?? SIZES.laptop;
+  const g = box(shape.at[0], shape.at[1], size.w, size.d, BASE);
+  return boundsOf([...g.outline, project(shape.at[0], shape.at[1], BASE + size.tall + 40), [g.outline[3][0], g.outline[3][1] + 34]]);
+}
+function draw6(shape) {
+  const [x, y] = shape.at;
+  const size = SIZES[shape.kind] ?? SIZES.laptop;
+  const g = box(x, y, size.w, size.d, BASE);
+  const back = y + size.d / 2 - 0.5;
+  const left = x - size.screen / 2;
+  const right = x + size.screen / 2;
+  const frame = [project(left, back, BASE), project(right, back, BASE), project(right, back, BASE + size.tall), project(left, back, BASE + size.tall)];
+  const inset = 3;
+  const glass = [project(left + 0.2, back, BASE + inset), project(right - 0.2, back, BASE + inset), project(right - 0.2, back, BASE + size.tall - inset), project(left + 0.2, back, BASE + size.tall - inset)];
+  return tag("path", { d: roundedPath(g.outline, 8), class: "st-shadow", transform: "translate(0 5)" }) + tag("path", { d: roundedPath(g.outline, 8), fill: COLORS.slab.side }) + tag("path", { d: roundedPath(g.top, 8), fill: COLORS.slab.top }) + tag("path", { d: roundedPath(g.outline, 8), class: "st-edge" }) + tag("path", { d: roundedPath(frame, 4), class: "st-device-frame" }) + tag("path", { d: roundedPath(glass, 2), class: "st-device-glass" });
+}
+function overlay6(shape) {
+  const [x, y] = shape.at;
+  const size = SIZES[shape.kind] ?? SIZES.laptop;
+  const front = project(x + size.w / 2, y - size.d / 2, 0);
+  const top = project(x, y, BASE + size.tall + 14);
+  return labelBelow(project(x, y)[0], front[1] + 22, shape.label, shape.kind === "phone" ? "smartphone" : "laptop") + tagsAbove(top[0], top[1], (shape.tags ?? []).map((t) => ["tag", t]));
+}
+
+// src/shapes/ghost.js
+var ghost_exports = {};
+__export(ghost_exports, {
+  bounds: () => bounds7,
+  draw: () => draw7,
+  layer: () => layer7,
+  overlay: () => overlay7,
+  reach: () => reach7
+});
+var layer7 = "shapes";
+var reach7 = (shape) => shape.s * 0.62;
+var bounds7 = (shape) => bounds({ ...shape, lift: 0 });
+function draw7(shape) {
+  const g = box(shape.at[0], shape.at[1], shape.s, shape.s, shape.h);
+  const label = [].concat(shape.label ?? []).filter(Boolean);
+  const [cx, cy] = g.center;
+  return tag("path", { d: roundedPath(g.outline, 9), class: "st-ghost" }) + tag("path", { d: roundedPath(g.top, 9), class: "st-ghost" }) + label.map((line, i) => text(cx, cy + 16 + i * 14 + shape.h * 0.2, line, { size: 12, weight: 800, cls: "st-muted" })).join("");
+}
+var overlay7 = () => "";
+
+// src/shapes/ring.js
+var ring_exports = {};
+__export(ring_exports, {
+  bounds: () => bounds8,
+  draw: () => draw8,
+  layer: () => layer8,
+  overlay: () => overlay8,
+  reach: () => reach8
+});
+var layer8 = "shapes";
+var reach8 = (shape) => shape.r;
+function bounds8(shape) {
+  const c = flatCircle(shape.at[0], shape.at[1], shape.r + 1);
+  return [c.cx - c.rx, c.cy - c.ry - 30, c.cx + c.rx, c.cy + c.ry + 34];
+}
+function draw8(shape) {
+  const [x, y] = shape.at;
+  const circle = flatCircle(x, y, shape.r);
+  const colors = shapeColors(shape);
+  const nodes = Array.from({ length: shape.n }, (_, i) => {
+    const angle = i / shape.n * Math.PI * 2;
+    return [x + Math.cos(angle) * shape.r, y + Math.sin(angle) * shape.r];
+  }).sort((a, b) => a[0] - a[1] - (b[0] - b[1]));
+  return tag("ellipse", { cx: circle.cx, cy: circle.cy, rx: circle.rx, ry: circle.ry, class: "st-zone" }) + nodes.map(([nx, ny]) => {
+    const g = box(nx, ny, 1.5, 1.5, 16);
+    return tag("path", { d: roundedPath(g.outline, 5), fill: colors.side }) + tag("path", { d: roundedPath(g.top, 5), fill: colors.top }) + tag("path", { d: roundedPath(g.outline, 5), class: "st-edge" });
+  }).join("");
+}
+function overlay8(shape) {
+  const c = flatCircle(shape.at[0], shape.at[1], shape.r);
+  return labelBelow(c.cx, c.cy + c.ry + 22, shape.label, "refresh-cw");
+}
+
 // src/shapes/index.js
-var SHAPE_DRAWERS = { block: block_exports, crowd: crowd_exports, db: db_exports, zone: zone_exports };
+var SHAPE_DRAWERS = { block: block_exports, crowd: crowd_exports, db: db_exports, zone: zone_exports, queue: queue_exports, device: device_exports, ghost: ghost_exports, ring: ring_exports };
 
 // src/camera.js
 function fit(boxes, padding = 0.1, minWidth = 360) {

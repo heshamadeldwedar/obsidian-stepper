@@ -3,10 +3,11 @@
 import { readLesson } from '../src/lesson.js';
 import { View } from '../src/view.js';
 import { EXAMPLE } from './example-lesson.js';
+import { GALLERY } from './gallery-lesson.js';
 
 const params = new URLSearchParams(location.search);
 const root = document.getElementById('root');
 if (params.get('width')) root.style.maxWidth = `${params.get('width')}px`;
-const view = new View(root, readLesson(EXAMPLE));
+const view = new View(root, readLesson(params.get('gallery') ? GALLERY : EXAMPLE));
 view.goTo(Number(params.get('step') ?? 1) - 1, { animate: false });
 window.view = view;

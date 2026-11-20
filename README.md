@@ -116,6 +116,14 @@ The code is plain JavaScript. Start reading at `src/main.js`. Each file begins w
 - [x] Pause freezes a step change mid-way; Replay plays the change again
 - [x] Unit tests (7 more, 30 total) + a filmed browser check
 
+### Phase 8: More shapes and states
+- [x] `queue`: a row of waiting items with its name on the floor
+- [x] `device`: a laptop or phone on a small platform
+- [x] `ghost`: a dashed see-through box (planned or removed)
+- [x] `ring`: nodes on a dashed circle (consistent hashing)
+- [x] States: `heat` (blue → red), `cpu` gauge, `dead` (gray, red ✕, DOWN tag), `dim`, `lift`, `tags`
+- [x] Shape gallery in the preview (`?gallery=1`)
+
 ## Credits
 
 Icons from [Lucide](https://lucide.dev) (ISC license). The look was inspired by the *Designed to Scale* course by Dilum Sanjaya. No code or artwork was copied from it.
