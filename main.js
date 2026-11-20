@@ -793,6 +793,8 @@ var Stage = class {
     this.layers = {};
     for (const name of ["floor", "links", "dots", "shapes", "over"]) this.layers[name] = this.svg.querySelector(`.st-layer-${name}`);
     this.drawn = /* @__PURE__ */ new Map();
+    this.zoom = { scale: 1, dx: 0, dy: 0 };
+    this.listenForZoom();
     this.labelLayer = svgEl("g");
     this.svg.appendChild(this.labelLayer);
   }
@@ -863,9 +865,44 @@ var Stage = class {
   fitView(shapes) {
     return fit(shapes.map((shape) => SHAPE_DRAWERS[shape.type].bounds(shape)));
   }
+  // The camera's view (from fitView or an animation), before the reader's own zoom and pan.
   setView(view) {
     this.view = view;
-    this.svg.setAttribute("viewBox", viewBox(view));
+    const { scale, dx, dy } = this.zoom;
+    const w = view.w / scale;
+    const h2 = view.h / scale;
+    this.svg.setAttribute("viewBox", viewBox({ x: view.x + (view.w - w) / 2 + dx, y: view.y + (view.h - h2) / 2 + dy, w, h: h2 }));
+  }
+  resetZoom() {
+    this.zoom = { scale: 1, dx: 0, dy: 0 };
+    if (this.view) this.setView(this.view);
+  }
+  // Ctrl/⌘ + wheel zooms (plain scrolling still scrolls the note). Drag pans. Double-click resets.
+  listenForZoom() {
+    this.svg.addEventListener("wheel", (event) => {
+      if (!event.ctrlKey && !event.metaKey) return;
+      event.preventDefault();
+      this.zoom.scale = Math.min(4, Math.max(0.5, this.zoom.scale * (event.deltaY < 0 ? 1.1 : 1 / 1.1)));
+      this.setView(this.view);
+    }, { passive: false });
+    this.svg.addEventListener("pointerdown", (start) => {
+      if (start.button !== 0) return;
+      const box2 = this.svg.getBoundingClientRect();
+      const origin = { ...this.zoom };
+      const unitsPerPixel = this.view.w / this.zoom.scale / box2.width;
+      const move = (event) => {
+        this.zoom.dx = origin.dx - (event.clientX - start.clientX) * unitsPerPixel;
+        this.zoom.dy = origin.dy - (event.clientY - start.clientY) * unitsPerPixel;
+        this.setView(this.view);
+      };
+      const stop = () => {
+        window.removeEventListener("pointermove", move);
+        window.removeEventListener("pointerup", stop);
+      };
+      window.addEventListener("pointermove", move);
+      window.addEventListener("pointerup", stop);
+    });
+    this.svg.addEventListener("dblclick", () => this.resetZoom());
   }
 };
 var svgEl = (name) => document.createElementNS("http://www.w3.org/2000/svg", name);
@@ -1067,6 +1104,7 @@ var Player = class {
   show(step, { animate = true } = {}) {
     const from = this.step;
     this.step = step;
+    this.stage.resetZoom();
     const toView = this.stage.fitView(Object.values(step.scene));
     if (!from || !animate || this.reduceMotion) {
       this.change = null;
@@ -1175,12 +1213,14 @@ var DOT_NAMES = {
   mine: "your request"
 };
 var View = class {
-  constructor(root, lesson, { renderMarkdown = plainMarkdown, onFullscreen = null, reduceMotion = false } = {}) {
+  constructor(root, lesson, { renderMarkdown = plainMarkdown, onFullscreen = null, reduceMotion = false, speed = 1, grid = true, startAt = 0, onStep = null } = {}) {
     this.root = root;
     this.lesson = lesson;
     this.renderMarkdown = renderMarkdown;
     this.index = -1;
+    this.onStep = onStep;
     root.classList.add("stepper");
+    root.classList.toggle("no-grid", !grid);
     root.setAttribute("tabindex", "0");
     root.setAttribute("aria-label", `${lesson.title}: interactive diagram. Use the left and right arrow keys to change step.`);
     root.addEventListener("keydown", (event) => this.onKey(event));
@@ -1191,7 +1231,7 @@ var View = class {
     this.pauseButton = this.toolButton("pause", "Pause", () => this.togglePause());
     const tools = h("div", { cls: "stepper-tools" }, [this.toolButton("rotate-ccw", "Replay", () => this.replay()), this.pauseButton]);
     const stageBox = h("div", { cls: "stepper-stage-box" }, [this.chips, tools, this.card, this.legend]);
-    this.player = new Player(stageBox, { reduceMotion });
+    this.player = new Player(stageBox, { reduceMotion, speed });
     this.timeline = h("ol", { cls: "stepper-timeline" });
     this.panel = h("div", { cls: "stepper-panel" });
     this.goals = h("ul", { cls: "stepper-goals" });
@@ -1202,7 +1242,7 @@ var View = class {
     this.buildChips();
     this.buildTimeline();
     this.buildLegend();
-    this.goTo(0);
+    this.goTo(Math.min(startAt, lesson.steps.length - 1), { animate: false });
   }
   header(onFullscreen) {
     const { title, subtitle, tags, steps } = this.lesson;
@@ -1259,13 +1299,14 @@ var View = class {
     this.updateGoals();
     this.player.show(step, { animate });
     this.shownOnce = true;
+    this.onStep?.(index);
   }
   updateChips(step) {
     for (const [key, el] of Object.entries(this.chipValues)) {
       const value = step.metrics[key] ?? "?";
       if (el.textContent === value) continue;
       el.textContent = value;
-      if (this.index === step.index && step.index === 0 && !this.shownOnce) continue;
+      if (!this.shownOnce) continue;
       const chip = el.parentElement;
       chip.classList.remove("is-changed");
       void chip.offsetWidth;
@@ -1297,7 +1338,7 @@ var View = class {
           [next ? `Next: ${next.short}` : "Done \u2713", next ? iconEl("arrow-right") : null]
         )
       ]),
-      h("div", { cls: "stepper-hint", text: "\u2190 \u2192 step \xB7 R replay \xB7 Space pause" })
+      h("div", { cls: "stepper-hint", text: "\u2190 \u2192 step \xB7 R replay \xB7 Space pause \xB7 Ctrl+wheel zoom \xB7 0 reset" })
     );
     this.panel.querySelector(".stepper-back").disabled = step.index === 0;
     this.panel.querySelector(".stepper-next").disabled = !next;
@@ -1354,7 +1395,8 @@ var View = class {
       ArrowLeft: () => this.goTo(this.index - 1),
       " ": () => this.togglePause(),
       r: () => this.replay(),
-      R: () => this.replay()
+      R: () => this.replay(),
+      0: () => this.player.stage.resetZoom()
     };
     if (!actions[event.key]) return;
     event.preventDefault();
@@ -1383,35 +1425,160 @@ function plainMarkdown(text2, el) {
 }
 var capitalize = (s) => String(s).charAt(0).toUpperCase() + String(s).slice(1);
 
+// src/editor.js
+function blockAtCursor(editor) {
+  const cursor = editor.getCursor().line;
+  let start = -1;
+  for (let line = cursor; line >= 0; line--) {
+    const text2 = editor.getLine(line).trim();
+    if (text2.startsWith("```stepper")) {
+      start = line;
+      break;
+    }
+    if (text2.startsWith("```") && line !== cursor) return null;
+  }
+  if (start < 0) return null;
+  const lines = [];
+  for (let line = start + 1; line < editor.lineCount(); line++) {
+    const text2 = editor.getLine(line);
+    if (text2.trim().startsWith("```")) return line >= cursor ? lines.join("\n") : null;
+    lines.push(text2);
+  }
+  return null;
+}
+
 // src/main.js
+var DEFAULT_SETTINGS = { speed: 1, motion: "system", grid: true };
+var EXAMPLE_BLOCK = `\`\`\`stepper
+title: Will one server do?
+metrics:
+  users: { label: Daily users, icon: users }
+legend: [req, fail]
+steps:
+  - title: Is one server enough?
+    short: The question
+    kind: problem
+    text: 10 million users a day. One server, or a hundred?
+    metrics: { users: 10M }
+    scene:
+      people: { type: crowd, at: [-2, -8], label: 10M users }
+      s0:     { type: block, at: [0, 6], label: [One, server?] }
+    links: { u: { from: people, to: s0 } }
+    flows: [ { route: [u], rate: 2 } ]
+  - title: The busiest hour
+    short: Peak
+    kind: insight
+    text: Evenings run about **3\xD7** the average.
+    scene: { s0: { heat: 1, cpu: 1 } }
+    flows: [ { route: [u], rate: 6, fail: 0.3 } ]
+\`\`\`
+`;
 var StepperPlugin = class extends import_obsidian.Plugin {
   async onload() {
+    this.settings = { ...DEFAULT_SETTINGS, ...await this.loadData() };
+    this.lastStep = /* @__PURE__ */ new Map();
     this.registerMarkdownCodeBlockProcessor("stepper", (source, el, ctx) => {
-      ctx.addChild(new StepperBlock(el, source, this, ctx.sourcePath));
+      const key = `${ctx.sourcePath}:${ctx.getSectionInfo(el)?.lineStart ?? 0}`;
+      ctx.addChild(new StepperBlock(el, source, this, ctx.sourcePath, key));
     });
+    this.addSettingTab(new StepperSettingTab(this));
+    this.addCommand({
+      id: "insert-example",
+      name: "Insert an example block",
+      editorCallback: (editor) => editor.replaceSelection(EXAMPLE_BLOCK)
+    });
+    this.addCommand({
+      id: "open-full-screen",
+      name: "Open the block under the cursor in full screen",
+      editorCheckCallback: (checking, editor, view) => {
+        const source = blockAtCursor(editor);
+        if (source === null) return false;
+        if (!checking) new FullScreenModal(this, source, view.file?.path ?? "").open();
+        return true;
+      }
+    });
+  }
+  // The options every View gets: Markdown rendering, motion, speed and grid from the settings.
+  viewOptions(component, sourcePath) {
+    const { speed, motion, grid } = this.settings;
+    const systemReduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    return {
+      // Step text is Markdown, so [[links]], bold and tables work like anywhere else in the vault.
+      renderMarkdown: (text2, el) => import_obsidian.MarkdownRenderer.render(this.app, text2, el, sourcePath, component),
+      reduceMotion: motion === "reduce" || motion === "system" && systemReduced,
+      speed: Number(speed),
+      grid
+    };
+  }
+  async saveSettings() {
+    await this.saveData(this.settings);
   }
 };
 var StepperBlock = class extends import_obsidian.MarkdownRenderChild {
-  constructor(el, source, plugin, sourcePath) {
+  constructor(el, source, plugin, sourcePath, key) {
     super(el);
-    this.source = source;
-    this.plugin = plugin;
-    this.sourcePath = sourcePath;
+    Object.assign(this, { source, plugin, sourcePath, key });
   }
   onload() {
     const root = this.containerEl.createDiv();
     try {
       const lesson = readLesson((0, import_obsidian.parseYaml)(this.source));
       this.view = new View(root, lesson, {
-        // Step text is Markdown, so [[links]], bold and tables work like anywhere else in the vault.
-        renderMarkdown: (text2, el) => import_obsidian.MarkdownRenderer.render(this.plugin.app, text2, el, this.sourcePath, this)
+        ...this.plugin.viewOptions(this, this.sourcePath),
+        startAt: this.plugin.lastStep.get(this.key) ?? 0,
+        onStep: (index) => this.plugin.lastStep.set(this.key, index),
+        onFullscreen: () => new FullScreenModal(this.plugin, this.source, this.sourcePath, this.view.index).open()
       });
     } catch (error) {
-      root.addClass("stepper");
-      root.createDiv({ cls: "stepper-error", text: `Stepper: ${error.message}` });
+      showError(root, error);
     }
   }
   onunload() {
     this.view?.destroy();
   }
 };
+var FullScreenModal = class extends import_obsidian.Modal {
+  constructor(plugin, source, sourcePath, startAt = 0) {
+    super(plugin.app);
+    Object.assign(this, { plugin, source, sourcePath, startAt });
+  }
+  onOpen() {
+    this.modalEl.addClass("stepper-modal");
+    this.component = new import_obsidian.Component();
+    this.component.load();
+    const root = this.contentEl.createDiv();
+    try {
+      this.view = new View(root, readLesson((0, import_obsidian.parseYaml)(this.source)), { ...this.plugin.viewOptions(this.component, this.sourcePath), startAt: this.startAt });
+      root.focus();
+    } catch (error) {
+      showError(root, error);
+    }
+  }
+  onClose() {
+    this.view?.destroy();
+    this.component.unload();
+    this.contentEl.empty();
+  }
+};
+var StepperSettingTab = class extends import_obsidian.PluginSettingTab {
+  constructor(plugin) {
+    super(plugin.app, plugin);
+    this.plugin = plugin;
+  }
+  display() {
+    const { containerEl, plugin } = this;
+    containerEl.empty();
+    const save = (key) => async (value) => {
+      plugin.settings[key] = value;
+      await plugin.saveSettings();
+    };
+    new import_obsidian.Setting(containerEl).setName("Animation speed").setDesc("How fast dots move and steps change. Applies to blocks drawn after the change.").addDropdown((d) => d.addOptions({ 0.5: "Slow (0.5\xD7)", 1: "Normal", 2: "Fast (2\xD7)" }).setValue(String(plugin.settings.speed)).onChange(save("speed")));
+    new import_obsidian.Setting(containerEl).setName("Motion").setDesc(`"Follow the system" respects your computer's reduced-motion setting. "Reduced" shows each step as a still picture.`).addDropdown((d) => d.addOptions({ system: "Follow the system", full: "Always animate", reduce: "Reduced" }).setValue(plugin.settings.motion).onChange(save("motion")));
+    new import_obsidian.Setting(containerEl).setName("Show the grid").setDesc("The dotted floor grid behind the diagram.").addToggle((t) => t.setValue(plugin.settings.grid).onChange(save("grid")));
+  }
+};
+function showError(root, error) {
+  root.empty();
+  root.addClass("stepper");
+  root.createDiv({ cls: "stepper-error", text: `Stepper: ${error.message}` });
+}

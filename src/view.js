@@ -17,12 +17,14 @@ const DOT_NAMES = {
 };
 
 export class View {
-  constructor(root, lesson, { renderMarkdown = plainMarkdown, onFullscreen = null, reduceMotion = false } = {}) {
+  constructor(root, lesson, { renderMarkdown = plainMarkdown, onFullscreen = null, reduceMotion = false, speed = 1, grid = true, startAt = 0, onStep = null } = {}) {
     this.root = root;
     this.lesson = lesson;
     this.renderMarkdown = renderMarkdown;
     this.index = -1;
+    this.onStep = onStep;
     root.classList.add('stepper');
+    root.classList.toggle('no-grid', !grid);
     root.setAttribute('tabindex', '0');
     root.setAttribute('aria-label', `${lesson.title}: interactive diagram. Use the left and right arrow keys to change step.`);
     root.addEventListener('keydown', event => this.onKey(event));
@@ -34,7 +36,7 @@ export class View {
     this.pauseButton = this.toolButton('pause', 'Pause', () => this.togglePause());
     const tools = h('div', { cls: 'stepper-tools' }, [this.toolButton('rotate-ccw', 'Replay', () => this.replay()), this.pauseButton]);
     const stageBox = h('div', { cls: 'stepper-stage-box' }, [this.chips, tools, this.card, this.legend]);
-    this.player = new Player(stageBox, { reduceMotion });
+    this.player = new Player(stageBox, { reduceMotion, speed });
     this.timeline = h('ol', { cls: 'stepper-timeline' });
     this.panel = h('div', { cls: 'stepper-panel' });
     this.goals = h('ul', { cls: 'stepper-goals' });
@@ -46,7 +48,7 @@ export class View {
     this.buildChips();
     this.buildTimeline();
     this.buildLegend();
-    this.goTo(0);
+    this.goTo(Math.min(startAt, lesson.steps.length - 1), { animate: false });
   }
 
   header(onFullscreen) {
@@ -110,6 +112,7 @@ export class View {
     this.updateGoals();
     this.player.show(step, { animate });
     this.shownOnce = true;
+    this.onStep?.(index);
   }
 
   updateChips(step) {
@@ -117,7 +120,7 @@ export class View {
       const value = step.metrics[key] ?? '?';
       if (el.textContent === value) continue;
       el.textContent = value;
-      if (this.index === step.index && step.index === 0 && !this.shownOnce) continue; // no flash on first load
+      if (!this.shownOnce) continue; // no flash on first load
       // Restart the flash animation on the chip whose value changed.
       const chip = el.parentElement;
       chip.classList.remove('is-changed');
@@ -150,7 +153,7 @@ export class View {
         h('button', { cls: 'stepper-next', attrs: { 'aria-label': next ? `Next: ${next.short}` : 'Finished' }, on: { click: () => this.goTo(step.index + 1) } },
           [next ? `Next: ${next.short}` : 'Done ✓', next ? iconEl('arrow-right') : null]),
       ]),
-      h('div', { cls: 'stepper-hint', text: '← → step · R replay · Space pause' }),
+      h('div', { cls: 'stepper-hint', text: '← → step · R replay · Space pause · Ctrl+wheel zoom · 0 reset' }),
     );
     this.panel.querySelector('.stepper-back').disabled = step.index === 0;
     this.panel.querySelector('.stepper-next').disabled = !next;
@@ -217,6 +220,7 @@ export class View {
       ' ': () => this.togglePause(),
       r: () => this.replay(),
       R: () => this.replay(),
+      0: () => this.player.stage.resetZoom(),
     };
     if (!actions[event.key]) return;
     event.preventDefault();

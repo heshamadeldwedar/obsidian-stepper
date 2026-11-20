@@ -38,6 +38,7 @@ npm test          # unit tests (Node's built-in test runner)
 npm run build     # src/ → main.js
 npm run dev       # rebuild on every save
 npm run preview   # build dev/preview.html, a browser page that shows the diagram without Obsidian
+npm run smoke     # build dev/smoke.html: the real main.js against a fake Obsidian, checks print on the page
 ```
 
 The code is plain JavaScript. Start reading at `src/main.js`. Each file begins with a comment that says what it does.
@@ -123,6 +124,19 @@ The code is plain JavaScript. Start reading at `src/main.js`. Each file begins w
 - [x] `ring`: nodes on a dashed circle (consistent hashing)
 - [x] States: `heat` (blue → red), `cpu` gauge, `dead` (gray, red ✕, DOWN tag), `dim`, `lift`, `tags`
 - [x] Shape gallery in the preview (`?gallery=1`)
+
+### Phase 9: Obsidian polish
+- [x] Dark mode that follows Obsidian's theme
+- [x] Settings: animation speed (0.5× / 1× / 2×), motion (follow system / always / reduced), show the grid
+- [x] Full-screen window (button in the header)
+- [x] Command: insert an example block
+- [x] Command: open the block under the cursor in full screen
+- [x] Remembers the current step when Obsidian redraws the block while you edit
+- [x] Zoom (Ctrl/⌘ + wheel), drag to pan, double-click or `0` to reset
+- [x] Reduced motion: each step as a still picture
+- [x] Print / PDF export: the current step, without buttons
+- [x] Smoke test of the real `main.js` against a fake Obsidian (13 checks)
+- [x] Unit tests (2 more, 32 total)
 
 ## Credits
 

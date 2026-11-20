@@ -26,6 +26,7 @@ export class Player {
   show(step, { animate = true } = {}) {
     const from = this.step;
     this.step = step;
+    this.stage.resetZoom();
     const toView = this.stage.fitView(Object.values(step.scene));
     if (!from || !animate || this.reduceMotion) {
       this.change = null;

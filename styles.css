@@ -8,6 +8,8 @@
   --st-line: #ddd3c5;
   --st-line-strong: #c6bbac;
   --st-ink: #1d1b18;
+  --st-edge: #1d1b18;
+  --st-pill: #fbf6ef;
   --st-muted: #6f6961;
   --st-green: #cfe3b2;
   --st-green-ink: #2a5a1f;
@@ -46,13 +48,13 @@
 .stepper-svg { width: 100%; height: 100%; display: block; }
 .stepper .st-grid-line { fill: none; stroke: var(--st-grid); stroke-width: 0.8; }
 
-.stepper .st-edge { fill: none; stroke: var(--st-ink); stroke-width: 1.9; stroke-linejoin: round; }
-.stepper .st-edge-thin { stroke: var(--st-ink); stroke-width: 1.4; }
-.stepper .st-head { fill: #fffaf2; stroke: var(--st-ink); stroke-width: 1.4; }
+.stepper .st-edge { fill: none; stroke: var(--st-edge); stroke-width: 1.9; stroke-linejoin: round; }
+.stepper .st-edge-thin { stroke: var(--st-edge); stroke-width: 1.4; }
+.stepper .st-head { fill: #fffaf2; stroke: var(--st-edge); stroke-width: 1.4; }
 .stepper .st-shade { fill: #3a2a14; opacity: 0.06; }
 .stepper .st-shadow { fill: var(--st-shadow); filter: blur(5px); }
-.stepper .st-icon { fill: none; stroke: var(--st-ink); stroke-linecap: round; stroke-linejoin: round; }
-.stepper .st-ink { fill: var(--st-ink); font-family: var(--st-font); }
+.stepper .st-icon { fill: none; stroke: var(--st-edge); stroke-linecap: round; stroke-linejoin: round; }
+.stepper .st-ink { fill: var(--st-edge); font-family: var(--st-font); }
 .stepper .st-muted { fill: var(--st-muted); font-family: var(--st-font); }
 .stepper .st-dead path { stroke: #c0392b; stroke-width: 4; stroke-linecap: round; }
 
@@ -60,10 +62,10 @@
 .stepper .st-floor-text { fill: var(--st-muted); letter-spacing: 1.6px; font-family: var(--st-font); }
 
 /* Pills: labels, tags and the CPU gauge */
-.stepper .st-pill-bg { fill: #fbf6ef; stroke: var(--st-ink); stroke-width: 1.3; }
-.stepper .st-pill-shadow { fill: var(--st-ink); }
-.stepper .st-pill-text { fill: var(--st-ink); font-family: var(--st-font); }
-.stepper .st-pill-icon { fill: none; stroke: var(--st-ink); stroke-linecap: round; stroke-linejoin: round; }
+.stepper .st-pill-bg { fill: var(--st-pill); stroke: var(--st-edge); stroke-width: 1.3; }
+.stepper .st-pill-shadow { fill: var(--st-edge); }
+.stepper .st-pill-text { fill: var(--st-edge); font-family: var(--st-font); }
+.stepper .st-pill-icon { fill: none; stroke: var(--st-edge); stroke-linecap: round; stroke-linejoin: round; }
 .stepper .st-tone-green .st-pill-bg { fill: #dcefd2; }
 .stepper .st-tone-green .st-pill-text { fill: var(--st-green-ink); }
 .stepper .st-tone-red .st-pill-bg { fill: var(--st-red-soft); }
@@ -184,12 +186,59 @@
 }
 
 /* Moving dots */
-.stepper .st-dot { stroke: var(--st-ink); stroke-width: 1.3; }
+.stepper .st-dot { stroke: var(--st-edge); stroke-width: 1.3; }
 .stepper .st-ring { fill: none; stroke: #7fc278; stroke-width: 2; }
-.stepper .st-fail { fill: var(--st-red); stroke: var(--st-ink); stroke-width: 1.2; }
+.stepper .st-fail { fill: var(--st-red); stroke: var(--st-edge); stroke-width: 1.2; }
 .stepper .st-fail-x { stroke: #fff; stroke-width: 1.8; stroke-linecap: round; }
 
 /* Devices and ghosts */
-.stepper .st-device-frame { fill: #3b3631; stroke: var(--st-ink); stroke-width: 1.6; }
+.stepper .st-device-frame { fill: #3b3631; stroke: var(--st-edge); stroke-width: 1.6; }
 .stepper .st-device-glass { fill: #e9e1f5; }
 .stepper .st-ghost { fill: rgba(255, 250, 242, 0.35); stroke: var(--st-ink); stroke-opacity: 0.5; stroke-width: 1.5; stroke-dasharray: 5 4; }
+
+/* ——— Dark mode: follows Obsidian's theme. Only the variables change. ——— */
+.theme-dark .stepper {
+  --st-paper: #211e1a;
+  --st-sheet: #28241f;
+  --st-card: #26231e;
+  --st-line: #3a342c;
+  --st-line-strong: #4f473d;
+  --st-ink: #efe6d6;
+  --st-muted: #a3998b;
+  --st-green: #3f4c2b;
+  --st-green-ink: #cfe8b8;
+  --st-violet: #493563;
+  --st-orange: #5a4531;
+  --st-red-soft: #5c3931;
+  --st-grid: rgba(255, 240, 220, 0.07);
+  --st-zone-fill: rgba(255, 240, 220, 0.04);
+  --st-shadow: rgba(0, 0, 0, 0.45);
+}
+.theme-dark .stepper .st-zone { stroke: var(--st-ink); }
+.theme-dark .stepper .st-callout-tip { background: #34402a; }
+.theme-dark .stepper .st-tone-green .st-pill-text { fill: #2a5a1f; }
+.theme-dark .stepper .stepper-tag-sand { background: #5a4b30; }
+.theme-dark .stepper .stepper-callout-tip { background: #34402a; }
+.theme-dark .stepper .stepper-callout-next, .theme-dark .stepper .stepper-kind-tradeoff, .theme-dark .stepper .stepper-change-edit .stepper-change-mark { background: #5a4b30; color: #ebd5ad; }
+.theme-dark .stepper .stepper-kind-problem { color: #f2c1bb; }
+.theme-dark .stepper .stepper-kind-technique { background: #344961; color: #c9dcf3; }
+.theme-dark .stepper .stepper-kind-insight { color: #ddd0f5; }
+.theme-dark .stepper .stepper-kind-setup { background: #3a342c; }
+.theme-dark .stepper .stepper-timeline-step.is-done .stepper-timeline-dot { background: #34402a; }
+.theme-dark .stepper .stepper-card-line.is-result { color: #e2f2d7; }
+
+/* Settings: hide the grid */
+.stepper.no-grid .st-grid { display: none; }
+
+/* Printing and PDF export: the current step as a still picture, no buttons */
+@media print {
+  .stepper-tools, .stepper-nav, .stepper-hint, .stepper-header .stepper-tool { display: none !important; }
+  .stepper { break-inside: avoid; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .stepper *, .stepper *::before { animation: none !important; transition: none !important; }
+}
+
+/* Full-screen window */
+.modal.stepper-modal { width: min(1440px, 96vw); max-width: none; max-height: 96vh; }
+.stepper-modal .modal-content .stepper { border: none; padding: 4px; }

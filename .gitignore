@@ -2,3 +2,4 @@ node_modules/
 dev/preview.js
 dev/*.png
 .DS_Store
+dev/smoke.html

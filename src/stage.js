@@ -35,6 +35,8 @@ export class Stage {
     this.layers = {};
     for (const name of ['floor', 'links', 'dots', 'shapes', 'over']) this.layers[name] = this.svg.querySelector(`.st-layer-${name}`);
     this.drawn = new Map(); // id → { g, overlay, html }
+    this.zoom = { scale: 1, dx: 0, dy: 0 };
+    this.listenForZoom();
     // Link labels go on top of everything, after the shape overlays.
     this.labelLayer = svgEl('g');
     this.svg.appendChild(this.labelLayer);
@@ -93,9 +95,43 @@ export class Stage {
     return fit(shapes.map(shape => SHAPE_DRAWERS[shape.type].bounds(shape)));
   }
 
+  // The camera's view (from fitView or an animation), before the reader's own zoom and pan.
   setView(view) {
     this.view = view;
-    this.svg.setAttribute('viewBox', viewBox(view));
+    const { scale, dx, dy } = this.zoom;
+    const w = view.w / scale;
+    const h = view.h / scale;
+    this.svg.setAttribute('viewBox', viewBox({ x: view.x + (view.w - w) / 2 + dx, y: view.y + (view.h - h) / 2 + dy, w, h }));
+  }
+
+  resetZoom() {
+    this.zoom = { scale: 1, dx: 0, dy: 0 };
+    if (this.view) this.setView(this.view);
+  }
+
+  // Ctrl/⌘ + wheel zooms (plain scrolling still scrolls the note). Drag pans. Double-click resets.
+  listenForZoom() {
+    this.svg.addEventListener('wheel', event => {
+      if (!event.ctrlKey && !event.metaKey) return;
+      event.preventDefault();
+      this.zoom.scale = Math.min(4, Math.max(0.5, this.zoom.scale * (event.deltaY < 0 ? 1.1 : 1 / 1.1)));
+      this.setView(this.view);
+    }, { passive: false });
+    this.svg.addEventListener('pointerdown', start => {
+      if (start.button !== 0) return;
+      const box = this.svg.getBoundingClientRect();
+      const origin = { ...this.zoom };
+      const unitsPerPixel = (this.view.w / this.zoom.scale) / box.width;
+      const move = event => {
+        this.zoom.dx = origin.dx - (event.clientX - start.clientX) * unitsPerPixel;
+        this.zoom.dy = origin.dy - (event.clientY - start.clientY) * unitsPerPixel;
+        this.setView(this.view);
+      };
+      const stop = () => { window.removeEventListener('pointermove', move); window.removeEventListener('pointerup', stop); };
+      window.addEventListener('pointermove', move);
+      window.addEventListener('pointerup', stop);
+    });
+    this.svg.addEventListener('dblclick', () => this.resetZoom());
   }
 }
 
