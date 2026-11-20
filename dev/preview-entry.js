@@ -8,5 +8,5 @@ const params = new URLSearchParams(location.search);
 const root = document.getElementById('root');
 if (params.get('width')) root.style.maxWidth = `${params.get('width')}px`;
 const view = new View(root, readLesson(EXAMPLE));
-view.goTo(Number(params.get('step') ?? 1) - 1);
+view.goTo(Number(params.get('step') ?? 1) - 1, { animate: false });
 window.view = view;

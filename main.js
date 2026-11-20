@@ -571,6 +571,10 @@ function fit(boxes, padding = 0.1, minWidth = 360) {
   const cx = (x0 + x1) / 2;
   return { x: cx - w / 2 - pad, y: y0 - pad, w: w + pad * 2, h: h2 + pad * 2 };
 }
+function between(a, b, t) {
+  const at = (key) => a[key] + (b[key] - a[key]) * t;
+  return { x: at("x"), y: at("y"), w: at("w"), h: at("h") };
+}
 var viewBox = (v) => [v.x, v.y, v.w, v.h].map((n) => Math.round(n * 10) / 10).join(" ");
 
 // src/links.js
@@ -806,16 +810,126 @@ function where(state, dot) {
   return { x, y, kind: dot.back ? "res" : state.flow.kind };
 }
 
+// src/transition.js
+var TIMING = {
+  drain: 500,
+  // old dots finish their trip; no new ones start
+  camera: [150, 950],
+  // the view glides to fit the new scene
+  morph: [200, 900],
+  // shapes that stay move, resize and recolor
+  remove: [0, 300],
+  // shapes that leave fade out
+  floor: [800, 1300],
+  // new zones fade in
+  linksIn: [800, 1300],
+  // new arrows fade in
+  dropStart: 900,
+  // the first new shape starts dropping in
+  dropGap: 120,
+  // the next one starts this much later (back to front)
+  dropLength: 600,
+  fadeLength: 500,
+  dropHeight: 120,
+  // px above its place
+  minimum: 1100
+  // new dots never start earlier than this
+};
+var NUMBERS = ["s", "h", "w", "d", "r", "heat", "dead", "dim", "lift", "opacity"];
+function planChange(from, to, fromView, toView) {
+  const stays = [], leaves = [], arrives = [];
+  for (const shape of Object.values(to.scene)) {
+    const old = from.scene[shape.id];
+    if (old && old.type === shape.type) stays.push({ from: old, to: shape });
+    else arrives.push(shape);
+  }
+  for (const shape of Object.values(from.scene)) {
+    const next = to.scene[shape.id];
+    if (!next || next.type !== shape.type) leaves.push(shape);
+  }
+  const drops = arrives.filter((s) => s.type !== "zone").sort((a, b) => a.at[0] - a.at[1] - (b.at[0] - b.at[1]));
+  const lastDrop = drops.length ? TIMING.dropStart + (drops.length - 1) * TIMING.dropGap + TIMING.dropLength : 0;
+  return {
+    from,
+    to,
+    fromView,
+    toView,
+    stays,
+    leaves,
+    zones: arrives.filter((s) => s.type === "zone"),
+    drops,
+    duration: Math.max(TIMING.minimum, lastDrop)
+  };
+}
+function stateAt(plan, ms) {
+  const shapes = [];
+  for (const { from, to } of plan.stays) shapes.push(morph(from, to, easeOut(progress(ms, TIMING.morph))));
+  for (const shape of plan.leaves) {
+    const fade = 1 - progress(ms, TIMING.remove);
+    if (fade > 0) shapes.push({ ...shape, opacity: (shape.opacity ?? 1) * fade });
+  }
+  for (const zone of plan.zones) shapes.push({ ...zone, opacity: progress(ms, TIMING.floor) });
+  plan.drops.forEach((shape, i) => {
+    const start = TIMING.dropStart + i * TIMING.dropGap;
+    const fall = progress(ms, [start, start + TIMING.dropLength]);
+    const fade = progress(ms, [start, start + TIMING.fadeLength]);
+    if (fade > 0) shapes.push({ ...shape, opacity: fade, lift: (shape.lift ?? 0) + TIMING.dropHeight * (1 - easeOutBack(fall)) });
+  });
+  const scene = Object.fromEntries(shapes.map((s) => [s.id, s]));
+  const linkOpacity = {};
+  const links = [];
+  for (const link of Object.values(plan.to.links)) {
+    links.push(link);
+    linkOpacity[link.id] = plan.from.links[link.id] ? 1 : progress(ms, TIMING.linksIn);
+  }
+  for (const link of Object.values(plan.from.links)) {
+    if (plan.to.links[link.id] || !scene[link.from] || !scene[link.to]) continue;
+    links.push(link);
+    linkOpacity[link.id] = 1 - progress(ms, TIMING.remove);
+  }
+  const usable = links.filter((link) => scene[link.from] && scene[link.to]);
+  return {
+    shapes,
+    scene,
+    links: usable,
+    linkOpacity,
+    view: between(plan.fromView, plan.toView, easeInOut(progress(ms, TIMING.camera))),
+    startNewFlows: ms >= plan.duration,
+    done: ms >= plan.duration
+  };
+}
+function morph(from, to, t) {
+  const shape = { ...t < 0.5 ? from : to };
+  for (const key of NUMBERS) {
+    if (typeof from[key] === "number" && typeof to[key] === "number") shape[key] = from[key] + (to[key] - from[key]) * t;
+  }
+  shape.at = [from.at[0] + (to.at[0] - from.at[0]) * t, from.at[1] + (to.at[1] - from.at[1]) * t];
+  if (from.cpu >= 0 && to.cpu >= 0) shape.cpu = from.cpu + (to.cpu - from.cpu) * t;
+  return shape;
+}
+function progress(ms, [start, end]) {
+  return Math.max(0, Math.min(1, (ms - start) / (end - start)));
+}
+var easeOut = (t) => 1 - Math.pow(1 - t, 3);
+var easeInOut = (t) => t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+function easeOutBack(t) {
+  const c = 1.4;
+  return 1 + (c + 1) * Math.pow(t - 1, 3) + c * Math.pow(t - 1, 2);
+}
+
 // src/player.js
 var EFFECT_SECONDS = { arrive: 0.45, fail: 0.6 };
 var Player = class {
-  constructor(parent, { reduceMotion = false } = {}) {
+  constructor(parent, { reduceMotion = false, speed = 1 } = {}) {
     this.stage = new Stage(parent);
     this.reduceMotion = reduceMotion;
+    this.speed = speed;
     this.paused = false;
     this.visible = true;
     this.flows = [];
+    this.oldFlows = [];
     this.effects = [];
+    this.change = null;
     this.frame = this.frame.bind(this);
     this.observer = new IntersectionObserver(([entry]) => {
       this.visible = entry.isIntersecting;
@@ -823,32 +937,52 @@ var Player = class {
     });
     this.observer.observe(this.stage.el);
   }
-  show(step) {
-    const shapes = Object.values(step.scene);
-    this.stage.drawShapes(shapes);
-    this.stage.drawLinks(Object.values(step.links), step.scene);
-    this.stage.setView(this.stage.fitView(shapes));
-    this.startFlows(step);
+  // Show a step. With `animate`, play the change from the step shown now.
+  show(step, { animate = true } = {}) {
+    const from = this.step;
     this.step = step;
+    const toView = this.stage.fitView(Object.values(step.scene));
+    if (!from || !animate || this.reduceMotion) {
+      this.change = null;
+      this.oldFlows = [];
+      this.drawStill(step, toView);
+      this.startFlows(step, { warm: true });
+    } else {
+      this.oldFlows = this.flows;
+      this.flows = [];
+      this.change = { plan: planChange(from, step, this.stage.view, toView), ms: 0 };
+    }
     this.wake();
   }
-  startFlows(step) {
-    this.flows = step.flows.map((flow) => startFlow(flow, routePoints(flow, step)));
-    this.effects = [];
-    if (!this.reduceMotion) for (let i = 0; i < 60; i++) for (const state of this.flows) tick(state, 0.05);
-    this.stage.drawDots(this.dots(), []);
-  }
-  replay() {
-    if (this.step) this.show(this.step);
+  // Play the change into the current step again, from `previous` (or just restart the dots on the first step).
+  replay(previous) {
+    const step = this.step;
+    if (!step) return;
+    if (previous) {
+      this.show(previous, { animate: false });
+      this.show(step);
+    } else this.show(step, { animate: false });
   }
   setPaused(paused) {
     this.paused = paused;
     this.wake();
   }
-  get running() {
-    return !this.paused && this.visible && !this.reduceMotion && this.flows.length > 0;
+  drawStill(step, view) {
+    this.stage.drawShapes(Object.values(step.scene));
+    this.stage.drawLinks(Object.values(step.links), step.scene);
+    this.stage.setView(view);
   }
-  // Start the loop if it should run and isn't running yet.
+  startFlows(step, { warm }) {
+    this.flows = step.flows.map((flow) => startFlow(flow, routePoints(flow, step)));
+    if (warm && !this.reduceMotion) for (let i = 0; i < 60; i++) for (const state of this.flows) tick(state, 0.05);
+    this.stage.drawDots(this.dots(), this.effects);
+  }
+  get moving() {
+    return Boolean(this.change || this.flows.length || this.oldFlows.length || this.effects.length);
+  }
+  get running() {
+    return !this.paused && this.visible && !this.reduceMotion && this.moving;
+  }
   wake() {
     if (this.running && !this.raf) {
       this.last = performance.now();
@@ -857,18 +991,35 @@ var Player = class {
   }
   frame(now) {
     this.raf = null;
-    const seconds = Math.min(0.05, (now - this.last) / 1e3);
+    const seconds = Math.min(0.05, (now - this.last) / 1e3) * this.speed;
     this.last = now;
-    for (const state of this.flows) {
-      for (const event of tick(state, seconds)) this.effects.push({ ...event, age: 0 });
-    }
+    if (this.change) this.playChange(seconds);
+    for (const state of this.flows) this.collect(tick(state, seconds));
+    for (const state of this.oldFlows) this.collect(tick(state, seconds, { spawning: false }));
+    this.oldFlows = this.oldFlows.filter((state) => state.dots.length);
     for (const effect of this.effects) effect.age += seconds / EFFECT_SECONDS[effect.type];
     this.effects = this.effects.filter((effect) => effect.age < 1);
     this.stage.drawDots(this.dots(), this.effects);
     if (this.running) this.raf = requestAnimationFrame(this.frame);
   }
+  playChange(seconds) {
+    const { plan } = this.change;
+    this.change.ms += seconds * 1e3;
+    const state = stateAt(plan, this.change.ms);
+    this.stage.drawShapes(state.shapes);
+    this.stage.drawLinks(state.links, state.scene, state.linkOpacity);
+    this.stage.setView(state.view);
+    if (state.done) {
+      this.change = null;
+      this.drawStill(this.step, plan.toView);
+      this.startFlows(this.step, { warm: false });
+    }
+  }
+  collect(events) {
+    for (const event of events) this.effects.push({ ...event, age: 0 });
+  }
   dots() {
-    return this.flows.flatMap((state) => state.dots.map((dot) => where(state, dot)));
+    return [...this.oldFlows, ...this.flows].flatMap((state) => state.dots.map((dot) => where(state, dot)));
   }
   destroy() {
     cancelAnimationFrame(this.raf);
@@ -912,7 +1063,7 @@ var View = class {
     this.card = h("div", { cls: "stepper-card" });
     this.legend = h("div", { cls: "stepper-legend" });
     this.pauseButton = this.toolButton("pause", "Pause", () => this.togglePause());
-    const tools = h("div", { cls: "stepper-tools" }, [this.toolButton("rotate-ccw", "Replay", () => this.player.replay()), this.pauseButton]);
+    const tools = h("div", { cls: "stepper-tools" }, [this.toolButton("rotate-ccw", "Replay", () => this.replay()), this.pauseButton]);
     const stageBox = h("div", { cls: "stepper-stage-box" }, [this.chips, tools, this.card, this.legend]);
     this.player = new Player(stageBox, { reduceMotion });
     this.timeline = h("ol", { cls: "stepper-timeline" });
@@ -969,7 +1120,8 @@ var View = class {
     }
   }
   // ——— Changing step ———
-  goTo(index) {
+  // Show a step. `animate: false` jumps straight there (used for the first step and the preview).
+  goTo(index, { animate = true } = {}) {
     const steps = this.lesson.steps;
     if (index < 0 || index >= steps.length || index === this.index) return;
     const step = steps[index];
@@ -979,7 +1131,7 @@ var View = class {
     this.updateCard(step);
     this.dots.forEach((dot, i) => dot.className = `stepper-timeline-step${i < index ? " is-done" : ""}${i === index ? " is-current" : ""}`);
     this.updateGoals();
-    this.player.show(step);
+    this.player.show(step, { animate });
     this.shownOnce = true;
   }
   updateChips(step) {
@@ -1060,6 +1212,9 @@ var View = class {
   tagPill(iconName, text2, tone) {
     return h("span", { cls: `stepper-tag stepper-tag-${tone}` }, [iconEl(iconName, 12), text2]);
   }
+  replay() {
+    this.player.replay(this.lesson.steps[this.index - 1]);
+  }
   togglePause() {
     this.paused = !this.paused;
     this.player.setPaused(this.paused);
@@ -1072,8 +1227,8 @@ var View = class {
       ArrowRight: () => this.goTo(this.index + 1),
       ArrowLeft: () => this.goTo(this.index - 1),
       " ": () => this.togglePause(),
-      r: () => this.player.replay(),
-      R: () => this.player.replay()
+      r: () => this.replay(),
+      R: () => this.replay()
     };
     if (!actions[event.key]) return;
     event.preventDefault();

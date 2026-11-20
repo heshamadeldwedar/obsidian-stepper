@@ -104,6 +104,18 @@ The code is plain JavaScript. Start reading at `src/main.js`. Each file begins w
 - [x] The loop stops when the block is off screen or paused (no wasted CPU)
 - [x] Unit tests (5 more, 23 total) + a browser check
 
+### Phase 7: Step change animation
+- [x] Shapes are matched by id between steps
+- [x] Old dots drain (finish their trip, no new ones)
+- [x] Camera glides to fit the new scene
+- [x] Shapes that stay slide, resize and recolor in place; words switch half way
+- [x] Shapes that leave fade out; links fade in and out
+- [x] New zones fade in on the floor
+- [x] New shapes drop in from 120 px above, back to front, with a small bounce
+- [x] New dots start after the last shape lands
+- [x] Pause freezes a step change mid-way; Replay plays the change again
+- [x] Unit tests (7 more, 30 total) + a filmed browser check
+
 ## Credits
 
 Icons from [Lucide](https://lucide.dev) (ISC license). The look was inspired by the *Designed to Scale* course by Dilum Sanjaya. No code or artwork was copied from it.

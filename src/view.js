@@ -32,7 +32,7 @@ export class View {
     this.card = h('div', { cls: 'stepper-card' });
     this.legend = h('div', { cls: 'stepper-legend' });
     this.pauseButton = this.toolButton('pause', 'Pause', () => this.togglePause());
-    const tools = h('div', { cls: 'stepper-tools' }, [this.toolButton('rotate-ccw', 'Replay', () => this.player.replay()), this.pauseButton]);
+    const tools = h('div', { cls: 'stepper-tools' }, [this.toolButton('rotate-ccw', 'Replay', () => this.replay()), this.pauseButton]);
     const stageBox = h('div', { cls: 'stepper-stage-box' }, [this.chips, tools, this.card, this.legend]);
     this.player = new Player(stageBox, { reduceMotion });
     this.timeline = h('ol', { cls: 'stepper-timeline' });
@@ -97,7 +97,8 @@ export class View {
 
   // ——— Changing step ———
 
-  goTo(index) {
+  // Show a step. `animate: false` jumps straight there (used for the first step and the preview).
+  goTo(index, { animate = true } = {}) {
     const steps = this.lesson.steps;
     if (index < 0 || index >= steps.length || index === this.index) return;
     const step = steps[index];
@@ -107,7 +108,7 @@ export class View {
     this.updateCard(step);
     this.dots.forEach((dot, i) => dot.className = `stepper-timeline-step${i < index ? ' is-done' : ''}${i === index ? ' is-current' : ''}`);
     this.updateGoals();
-    this.player.show(step);
+    this.player.show(step, { animate });
     this.shownOnce = true;
   }
 
@@ -197,6 +198,10 @@ export class View {
     return h('span', { cls: `stepper-tag stepper-tag-${tone}` }, [iconEl(iconName, 12), text]);
   }
 
+  replay() {
+    this.player.replay(this.lesson.steps[this.index - 1]);
+  }
+
   togglePause() {
     this.paused = !this.paused;
     this.player.setPaused(this.paused);
@@ -210,8 +215,8 @@ export class View {
       ArrowRight: () => this.goTo(this.index + 1),
       ArrowLeft: () => this.goTo(this.index - 1),
       ' ': () => this.togglePause(),
-      r: () => this.player.replay(),
-      R: () => this.player.replay(),
+      r: () => this.replay(),
+      R: () => this.replay(),
     };
     if (!actions[event.key]) return;
     event.preventDefault();
