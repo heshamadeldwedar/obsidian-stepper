@@ -1,0 +1,15 @@
+<!doctype html>
+<!-- Mimics Obsidian's reading view (pane → readable-width column → code block) to check the block breaks out wider. -->
+<html><head><meta charset="utf-8"><link rel="stylesheet" href="../styles.css">
+<style>
+  body { margin: 0; background: #efe6da; font-family: sans-serif; }
+  .markdown-preview-view { width: 100vw; padding: 32px 0; }
+  .markdown-preview-sizer { max-width: 700px; margin: 0 auto; }
+  p { line-height: 1.6; }
+</style></head>
+<body><div class="markdown-preview-view"><div class="markdown-preview-sizer">
+  <p>Note text stays at the readable width. The diagram below should be wider and centered.</p>
+  <div class="block-language-stepper" id="block"><div id="root"></div></div>
+  <p>Text after the block, back to the readable width.</p>
+</div></div>
+<script src="preview.js"></script></body></html>

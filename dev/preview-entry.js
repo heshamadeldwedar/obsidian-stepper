@@ -10,6 +10,7 @@ const params = new URLSearchParams(location.search);
 const root = document.getElementById('root');
 if (params.get('dark')) { document.body.classList.add('theme-dark'); document.body.style.background = '#1b1916'; }
 if (params.get('width')) root.style.maxWidth = `${params.get('width')}px`;
+if (root.parentElement.id !== 'block' && !params.get('width')) root.style.maxWidth = '1100px';
 const lessons = { gallery: GALLERY, napkin: NAPKIN };
 const pick = Object.keys(lessons).find(name => params.get(name));
 const view = new View(root, readLesson(pick ? lessons[pick] : EXAMPLE));

@@ -245,3 +245,21 @@
 
 /* Leave room for Replay and Pause when they are shown (full screen) */
 .stepper-stage-box:has(.stepper-tools) .stepper-chips { right: 190px; }
+
+/* ——— Wider than the note text ———
+   Obsidian keeps notes at a readable line width (~700px), which is too narrow for a diagram.
+   The note's pane becomes a size container (only in notes that have a stepper block), and the block
+   grows to the pane's width, up to 1200px, centered on the text column. */
+.markdown-preview-view:has(.block-language-stepper),
+.markdown-source-view.mod-cm6 .cm-scroller:has(.block-language-stepper) {
+  container-type: inline-size;
+  container-name: stepper-pane;
+}
+@container stepper-pane (min-width: 0px) {
+  .block-language-stepper {
+    --stepper-width: min(1200px, 100cqw - 64px);
+    width: var(--stepper-width);
+    max-width: none;
+    margin-inline-start: calc((100% - var(--stepper-width)) / 2);
+  }
+}
