@@ -7,7 +7,7 @@
   "scripts": {
     "build": "node esbuild.config.js",
     "dev": "node esbuild.config.js --watch",
-    "test": "node --test tests/",
+    "test": "node --test tests/*.test.js",
     "icons": "node tools/build-icons.js",
     "preview": "node esbuild.config.js --preview"
   },

@@ -51,6 +51,14 @@ The code is plain JavaScript. Start reading at `src/main.js`. Each file begins w
 - [x] A broken block shows a readable error instead of crashing
 - [x] Build (`npm run build`) and install by `git clone` / `git pull`
 
+### Phase 2: Lesson format
+- [x] Read title, metrics, legend, goals, steps
+- [x] Each step starts from the previous one (scene, links, metrics)
+- [x] `id: null` removes a shape, `scene!` replaces the whole scene
+- [x] Flows are per step (not inherited)
+- [x] Errors say where: `steps[2].scene.s0: unknown type "srvr"`
+- [x] Unit tests (7)
+
 ## Credits
 
 Icons from [Lucide](https://lucide.dev) (ISC license). The look was inspired by the *Designed to Scale* course by Dilum Sanjaya. No code or artwork was copied from it.
