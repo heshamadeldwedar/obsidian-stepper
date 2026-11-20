@@ -95,6 +95,7 @@ class StepperBlock extends MarkdownRenderChild {
       this.view = new View(root, lesson, {
         ...this.plugin.viewOptions(this, this.sourcePath),
         startAt: this.plugin.lastStep.get(this.key) ?? 0,
+        tools: false, // keep the inline block clean; full screen has Replay and Pause
         onStep: index => this.plugin.lastStep.set(this.key, index),
         onFullscreen: () => new FullScreenModal(this.plugin, this.source, this.sourcePath, this.view.index).open(),
       });

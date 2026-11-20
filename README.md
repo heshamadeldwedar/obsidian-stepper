@@ -149,6 +149,9 @@ The code is plain JavaScript. Start reading at `src/main.js`. Each file begins w
 - [x] Version 1.0.0, GitHub release with `main.js`, `manifest.json`, `styles.css`
 - [x] Unit tests: 37 total
 
+### After 1.0 (your feedback)
+- [x] Inline blocks hide Replay and Pause (full screen keeps them; R and Space still work)
+
 ## Not in v1
 - A visual editor (blocks are written as YAML)
 - Exporting a step as PNG, or the animation as video

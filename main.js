@@ -1213,7 +1213,7 @@ var DOT_NAMES = {
   mine: "your request"
 };
 var View = class {
-  constructor(root, lesson, { renderMarkdown = plainMarkdown, onFullscreen = null, reduceMotion = false, speed = 1, grid = true, startAt = 0, onStep = null } = {}) {
+  constructor(root, lesson, { renderMarkdown = plainMarkdown, onFullscreen = null, reduceMotion = false, speed = 1, grid = true, startAt = 0, onStep = null, tools = true } = {}) {
     this.root = root;
     this.lesson = lesson;
     this.renderMarkdown = renderMarkdown;
@@ -1229,8 +1229,8 @@ var View = class {
     this.card = h("div", { cls: "stepper-card" });
     this.legend = h("div", { cls: "stepper-legend" });
     this.pauseButton = this.toolButton("pause", "Pause", () => this.togglePause());
-    const tools = h("div", { cls: "stepper-tools" }, [this.toolButton("rotate-ccw", "Replay", () => this.replay()), this.pauseButton]);
-    const stageBox = h("div", { cls: "stepper-stage-box" }, [this.chips, tools, this.card, this.legend]);
+    const toolBar = h("div", { cls: "stepper-tools" }, [this.toolButton("rotate-ccw", "Replay", () => this.replay()), this.pauseButton]);
+    const stageBox = h("div", { cls: "stepper-stage-box" }, [this.chips, tools ? toolBar : null, this.card, this.legend]);
     this.player = new Player(stageBox, { reduceMotion, speed });
     this.timeline = h("ol", { cls: "stepper-timeline" });
     this.panel = h("div", { cls: "stepper-panel" });
@@ -1527,6 +1527,8 @@ var StepperBlock = class extends import_obsidian.MarkdownRenderChild {
       this.view = new View(root, lesson, {
         ...this.plugin.viewOptions(this, this.sourcePath),
         startAt: this.plugin.lastStep.get(this.key) ?? 0,
+        tools: false,
+        // keep the inline block clean; full screen has Replay and Pause
         onStep: (index) => this.plugin.lastStep.set(this.key, index),
         onFullscreen: () => new FullScreenModal(this.plugin, this.source, this.sourcePath, this.view.index).open()
       });
