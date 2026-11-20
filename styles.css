@@ -275,3 +275,8 @@
 
 /* Floor glow under a shape that just changed or landed */
 .stepper .st-spot { fill: rgba(127, 194, 120, 0.14); stroke: #7fc278; stroke-width: 2.5; filter: blur(1.5px); }
+
+/* The napkin card docks in the emptiest corner (chosen in view.js) */
+.stepper-card[data-corner="bottom-left"] { right: auto; left: 12px; bottom: 36px; }
+.stepper-card[data-corner="top-right"] { bottom: auto; top: 72px; }
+.stepper-card[data-corner="top-left"] { bottom: auto; top: 72px; right: auto; left: 12px; }

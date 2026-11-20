@@ -769,9 +769,6 @@ function between(a, b, t) {
   return { x: at("x"), y: at("y"), w: at("w"), h: at("h") };
 }
 var viewBox = (v) => [v.x, v.y, v.w, v.h].map((n) => Math.round(n * 10) / 10).join(" ");
-function recenter(view, size) {
-  return { x: view.x + view.w / 2 - size.w / 2, y: view.y + view.h / 2 - size.h / 2, w: size.w, h: size.h };
-}
 
 // src/links.js
 function floorRoute(link, from, to) {
@@ -1028,6 +1025,9 @@ var Stage = class {
       this.layers.spots.innerHTML = html;
       this.spotsHtml = html;
     }
+  }
+  boundsOf(shape) {
+    return SHAPE_DRAWERS[shape.type].bounds(shape);
   }
   // The view that shows all these shapes.
   fitView(shapes, keepClear) {
@@ -1313,21 +1313,26 @@ var Player = class {
     }
     this.wake();
   }
-  // One zoom level for the whole lesson, so stepping through never zooms in and out:
-  // the camera only pans to center each step's shapes (like the reference). Call once with all steps.
+  // One camera for the whole lesson: it fits every shape of every step, so stepping through never
+  // moves or zooms the picture, and every step has the same margins. Call once with all steps.
   prepare(steps) {
-    const views = steps.map((step) => this.fitStep({ ...step, card: null }));
-    this.size = { w: Math.max(...views.map((v) => v.w)), h: Math.max(...views.map((v) => v.h)) };
+    const shapes = steps.flatMap((step) => Object.values(step.scene));
+    this.lessonView = this.stage.fitView(shapes, { top: 0.16 });
   }
-  // The view that fits one step, keeping shapes out from under the numbers bar (top)
-  // and the napkin card (bottom right).
-  fitStep(step) {
-    return this.stage.fitView(Object.values(step.scene), { top: 0.16, right: step.card ? 0.3 : 0, bottom: step.card ? 0.2 : 0 });
+  // The shapes' boxes on screen, in px from the diagram's top-left corner. Used to dock the card.
+  shapeRects(step) {
+    const box2 = this.stage.svg.getBoundingClientRect();
+    const view = this.lessonView ?? this.stage.view;
+    const scale = Math.min(box2.width / view.w, box2.height / view.h);
+    const offsetX = (box2.width - view.w * scale) / 2;
+    const offsetY = (box2.height - view.h * scale) / 2;
+    return Object.values(step.scene).map((shape) => {
+      const [x0, y0, x1, y1] = this.stage.boundsOf(shape);
+      return [offsetX + (x0 - view.x) * scale, offsetY + (y0 - view.y) * scale, offsetX + (x1 - view.x) * scale, offsetY + (y1 - view.y) * scale];
+    });
   }
-  // The step's view at the lesson's zoom level, centered on the step's shapes.
   viewFor(step) {
-    const fit2 = this.fitStep(step);
-    return this.size ? recenter(fit2, this.size) : fit2;
+    return this.lessonView ?? this.stage.fitView(Object.values(step.scene), { top: 0.16 });
   }
   // Play the change into the current step again, from `previous` (or just restart the dots on the first step).
   replay(previous) {
@@ -1609,6 +1614,7 @@ var View = class {
     const card = step.card;
     this.card.classList.toggle("is-hidden", !card);
     if (!card) return;
+    requestAnimationFrame(() => this.dockCard(step));
     this.card.replaceChildren(
       h("div", { cls: "stepper-card-title" }, [card.icon ? iconEl(card.icon, 13) : null, card.title]),
       ...card.lines.map((line, i) => {
@@ -1617,6 +1623,31 @@ var View = class {
         return el;
       })
     );
+  }
+  // Put the card in the corner of the diagram that covers the fewest shapes (the reference does the same).
+  dockCard(step) {
+    const stage = this.card.parentElement.getBoundingClientRect();
+    const { width: w, height: h2 } = this.card.getBoundingClientRect();
+    if (!stage.width || !w) return;
+    const shapes = this.player.shapeRects(step);
+    const top = 72;
+    const corners2 = {
+      "bottom-right": [stage.width - w - 12, stage.height - h2 - 12],
+      "bottom-left": [12, stage.height - h2 - 36],
+      // above the legend
+      "top-right": [stage.width - w - 12, top],
+      "top-left": [12, top]
+    };
+    let best = null;
+    for (const [name, [x, y]] of Object.entries(corners2)) {
+      const covered = shapes.reduce((sum, [x0, y0, x1, y1]) => {
+        const cw = Math.min(x + w, x1) - Math.max(x, x0);
+        const ch = Math.min(y + h2, y1) - Math.max(y, y0);
+        return sum + (cw > 0 && ch > 0 ? cw * ch : 0);
+      }, 0);
+      if (!best || covered < best.covered - 1) best = { name, covered };
+    }
+    this.card.dataset.corner = best.name;
   }
   updateGoals() {
     this.goals.replaceChildren(...this.lesson.goals.map((goal) => h("li", { cls: goal.step <= this.index ? "is-done" : "" }, [

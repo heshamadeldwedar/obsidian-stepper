@@ -104,6 +104,10 @@ export class Stage {
     if (html !== this.spotsHtml) { this.layers.spots.innerHTML = html; this.spotsHtml = html; }
   }
 
+  boundsOf(shape) {
+    return SHAPE_DRAWERS[shape.type].bounds(shape);
+  }
+
   // The view that shows all these shapes.
   fitView(shapes, keepClear) {
     return fit(shapes.map(shape => SHAPE_DRAWERS[shape.type].bounds(shape)), 0.1, 360, keepClear);

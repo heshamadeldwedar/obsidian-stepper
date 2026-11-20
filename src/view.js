@@ -192,6 +192,7 @@ export class View {
     const card = step.card;
     this.card.classList.toggle('is-hidden', !card);
     if (!card) return;
+    requestAnimationFrame(() => this.dockCard(step));
     this.card.replaceChildren(
       h('div', { cls: 'stepper-card-title' }, [card.icon ? iconEl(card.icon, 13) : null, card.title]),
       ...card.lines.map((line, i) => {
@@ -200,6 +201,32 @@ export class View {
         return el;
       }),
     );
+  }
+
+  // Put the card in the corner of the diagram that covers the fewest shapes (the reference does the same).
+  dockCard(step) {
+    const stage = this.card.parentElement.getBoundingClientRect();
+    const { width: w, height: h } = this.card.getBoundingClientRect();
+    if (!stage.width || !w) return;
+    const shapes = this.player.shapeRects(step);
+    const top = 72; // below the numbers bar
+    const corners = {
+      'bottom-right': [stage.width - w - 12, stage.height - h - 12],
+      'bottom-left': [12, stage.height - h - 36], // above the legend
+      'top-right': [stage.width - w - 12, top],
+      'top-left': [12, top],
+    };
+    let best = null;
+    for (const [name, [x, y]] of Object.entries(corners)) {
+      const covered = shapes.reduce((sum, [x0, y0, x1, y1]) => {
+        const cw = Math.min(x + w, x1) - Math.max(x, x0);
+        const ch = Math.min(y + h, y1) - Math.max(y, y0);
+        return sum + (cw > 0 && ch > 0 ? cw * ch : 0);
+      }, 0);
+      // Prefer the bottom-right corner when it's a tie.
+      if (!best || covered < best.covered - 1) best = { name, covered };
+    }
+    this.card.dataset.corner = best.name;
   }
 
   updateGoals() {

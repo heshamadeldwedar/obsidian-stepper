@@ -3,7 +3,6 @@
 import { Stage } from './stage.js';
 import { startFlow, tick, routePoints, where } from './dots.js';
 import { planChange, stateAt, TIMING } from './transition.js';
-import { recenter } from './camera.js';
 
 const EFFECT_SECONDS = { arrive: 0.45, fail: 0.6 };
 const SPOT_SECONDS = 1.5;
@@ -57,24 +56,30 @@ export class Player {
     this.wake();
   }
 
-  // One zoom level for the whole lesson, so stepping through never zooms in and out:
-  // the camera only pans to center each step's shapes (like the reference). Call once with all steps.
+  // One camera for the whole lesson: it fits every shape of every step, so stepping through never
+  // moves or zooms the picture, and every step has the same margins. Call once with all steps.
   prepare(steps) {
-    // Measured without the napkin card's corner: a card step pans to make room instead of zooming out.
-    const views = steps.map(step => this.fitStep({ ...step, card: null }));
-    this.size = { w: Math.max(...views.map(v => v.w)), h: Math.max(...views.map(v => v.h)) };
+    const shapes = steps.flatMap(step => Object.values(step.scene));
+    // Room at the top for the numbers bar. The napkin card needs no room: it docks in the emptiest corner.
+    this.lessonView = this.stage.fitView(shapes, { top: 0.16 });
   }
 
-  // The view that fits one step, keeping shapes out from under the numbers bar (top)
-  // and the napkin card (bottom right).
-  fitStep(step) {
-    return this.stage.fitView(Object.values(step.scene), { top: 0.16, right: step.card ? 0.3 : 0, bottom: step.card ? 0.2 : 0 });
+  // The shapes' boxes on screen, in px from the diagram's top-left corner. Used to dock the card.
+  shapeRects(step) {
+    const box = this.stage.svg.getBoundingClientRect();
+    const view = this.lessonView ?? this.stage.view;
+    // The SVG keeps its aspect ratio (centered), so one scale fits both axes.
+    const scale = Math.min(box.width / view.w, box.height / view.h);
+    const offsetX = (box.width - view.w * scale) / 2;
+    const offsetY = (box.height - view.h * scale) / 2;
+    return Object.values(step.scene).map(shape => {
+      const [x0, y0, x1, y1] = this.stage.boundsOf(shape);
+      return [offsetX + (x0 - view.x) * scale, offsetY + (y0 - view.y) * scale, offsetX + (x1 - view.x) * scale, offsetY + (y1 - view.y) * scale];
+    });
   }
 
-  // The step's view at the lesson's zoom level, centered on the step's shapes.
   viewFor(step) {
-    const fit = this.fitStep(step);
-    return this.size ? recenter(fit, this.size) : fit;
+    return this.lessonView ?? this.stage.fitView(Object.values(step.scene), { top: 0.16 });
   }
 
   // Play the change into the current step again, from `previous` (or just restart the dots on the first step).
