@@ -155,9 +155,11 @@ The code is plain JavaScript. Start reading at `src/main.js`. Each file begins w
 - [x] The camera keeps shapes out from under the numbers bar and the napkin card
 - [x] Links lie on the floor grid: straight along a grid line, or one rounded 90° corner (`bend`)
 - [x] Small filled arrowheads; labels sit beside the line, not on it; new `dotted` style, finer `dashed`
-- [x] Laptop redrawn: big platform, keyboard with keys, raised screen with a browser
+- [x] Laptop redrawn to the reference's proportions: square platform, dark screen at the back showing a browser, keyboard with 4 rows of keys and a touchpad
 - [x] Changed numbers count up with a green outline glow; a floor glow under shapes that changed or landed
 - [x] Database cylinder: no stray line across its top
+- [x] Links stop just outside each shape's outline on screen, so both arrowheads always show
+- [x] Dots passing through a shape between two links are hidden (no jumping across the shape)
 
 ## Not in v1
 - A visual editor (blocks are written as YAML)

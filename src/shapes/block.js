@@ -9,6 +9,9 @@ export const layer = 'shapes';
 // How far a link stops from the center (floor units), so arrows end at the box's edge.
 export const reach = shape => shape.s * 0.62;
 
+// The shape's outline on screen. Links stop where they leave it, so arrowheads are never hidden behind the shape.
+export const outline = shape => box(shape.at[0], shape.at[1], shape.s, shape.s, shape.h, shape.lift).outline;
+
 export function bounds(shape) {
   const g = box(shape.at[0], shape.at[1], shape.s, shape.s, shape.h, shape.lift);
   return boundsOf([...g.outline, project(shape.at[0], shape.at[1], shape.h + shape.lift + 40)]);

@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { startFlow, tick, where, SPEED } from '../src/dots.js';
 
-const line = [[0, 0], [SPEED * 2, 0]]; // two seconds long
+const line = { points: [[0, 0], [SPEED * 2, 0]] }; // two seconds long
 const flow = (extra = {}) => ({ route: ['l'], rate: 2, kind: 'req', fail: 0, bounce: false, reverse: false, ...extra });
 const steady = () => 0.5; // a fixed "random" so tests repeat
 
@@ -46,4 +46,14 @@ test('bounce comes back as a response', () => {
   assert.equal(where(state, state.dots[0]).kind, 'res');
   tick(state, 2.1, { spawning: false });
   assert.equal(state.dots.length, 0);
+});
+
+test('dots passing through a shape between two links are hidden', () => {
+  const route = { points: [[0, 0], [SPEED, 0], [SPEED * 2, 0], [SPEED * 3, 0]], gaps: [[SPEED, SPEED * 2]] };
+  const state = startFlow(flow({ rate: 1 }), route, () => 0.99);
+  tick(state, 0.02);
+  tick(state, 1.4, { spawning: false });
+  assert.equal(where(state, state.dots[0]).hidden, true, 'inside the gap');
+  tick(state, 1.0, { spawning: false });
+  assert.equal(where(state, state.dots[0]).hidden, false, 'out the other side');
 });

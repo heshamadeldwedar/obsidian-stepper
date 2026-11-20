@@ -7,6 +7,16 @@ import { labelBelow, tagsAbove } from './common.js';
 export const layer = 'shapes';
 export const reach = shape => shape.r * 1.25;
 
+// The cylinder's outline: the top half of the top ellipse, then the bottom half of the bottom one.
+export function outline(shape) {
+  const top = flatCircle(shape.at[0], shape.at[1], shape.r, shape.h + shape.lift);
+  const bottom = flatCircle(shape.at[0], shape.at[1], shape.r, shape.lift);
+  const points = [];
+  for (let i = 0; i <= 12; i++) { const a = Math.PI + (i / 12) * Math.PI; points.push([top.cx + Math.cos(a) * top.rx, top.cy + Math.sin(a) * top.ry]); }
+  for (let i = 0; i <= 12; i++) { const a = (i / 12) * Math.PI; points.push([bottom.cx + Math.cos(a) * bottom.rx, bottom.cy + Math.sin(a) * bottom.ry]); }
+  return points;
+}
+
 export function bounds(shape) {
   const top = flatCircle(shape.at[0], shape.at[1], shape.r, shape.h + shape.lift);
   const bottom = flatCircle(shape.at[0], shape.at[1], shape.r, 0);

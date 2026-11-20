@@ -129,7 +129,7 @@ export class Player {
   }
 
   dots() {
-    return [...this.oldFlows, ...this.flows].flatMap(state => state.dots.map(dot => where(state, dot)));
+    return [...this.oldFlows, ...this.flows].flatMap(state => state.dots.map(dot => where(state, dot))).filter(dot => !dot.hidden);
   }
 
   destroy() {

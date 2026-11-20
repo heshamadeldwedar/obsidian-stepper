@@ -55,6 +55,7 @@ test('every shape type draws, has bounds and stays inside its layer', () => {
     assert.equal(drawer.bounds(shape).length, 4, `${type} bounds`);
     assert.ok(['floor', 'shapes'].includes(drawer.layer), `${type} layer`);
     assert.ok(drawer.reach(shape) > 0, `${type} reach`);
+    assert.ok(drawer.outline(shape).length >= 3, `${type} outline`);
     assert.equal(typeof drawer.overlay(shape), 'string');
   }
 });

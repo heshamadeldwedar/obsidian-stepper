@@ -8,6 +8,10 @@ export const layer = 'shapes';
 const GAP = 1.25; // units between items
 
 export const reach = () => 1;
+export function outline(shape) {
+  const [x0, y0, x1, y1] = bounds(shape);
+  return [[x0, y0], [x1, y0], [x1, y1], [x0, y1]];
+}
 
 function items(shape) {
   const [dx, dy] = shape.dir;

@@ -7,6 +7,7 @@ import { labelBelow, tagsAbove } from './common.js';
 
 export const layer = 'shapes';
 export const reach = shape => Math.min(shape.w, shape.d) * 0.55;
+export const outline = shape => box(shape.at[0], shape.at[1], shape.w, shape.d, 8).outline;
 const SLAB = 8;
 const PEOPLE_COLORS = ['#b9d1ef', '#f6c08f', '#cdbde9', '#bcdca6', '#f1d27a'];
 

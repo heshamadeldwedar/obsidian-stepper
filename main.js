@@ -265,6 +265,7 @@ __export(block_exports, {
   boundsOf: () => boundsOf,
   draw: () => draw,
   layer: () => layer,
+  outline: () => outline,
   overlay: () => overlay,
   reach: () => reach
 });
@@ -406,6 +407,7 @@ function labelBelow(x, y, label, iconName) {
 // src/shapes/block.js
 var layer = "shapes";
 var reach = (shape) => shape.s * 0.62;
+var outline = (shape) => box(shape.at[0], shape.at[1], shape.s, shape.s, shape.h, shape.lift).outline;
 function bounds(shape) {
   const g = box(shape.at[0], shape.at[1], shape.s, shape.s, shape.h, shape.lift);
   return boundsOf([...g.outline, project(shape.at[0], shape.at[1], shape.h + shape.lift + 40)]);
@@ -449,11 +451,13 @@ __export(crowd_exports, {
   bounds: () => bounds2,
   draw: () => draw2,
   layer: () => layer2,
+  outline: () => outline2,
   overlay: () => overlay2,
   reach: () => reach2
 });
 var layer2 = "shapes";
 var reach2 = (shape) => Math.min(shape.w, shape.d) * 0.55;
+var outline2 = (shape) => box(shape.at[0], shape.at[1], shape.w, shape.d, 8).outline;
 var SLAB = 8;
 var PEOPLE_COLORS = ["#b9d1ef", "#f6c08f", "#cdbde9", "#bcdca6", "#f1d27a"];
 function bounds2(shape) {
@@ -500,11 +504,26 @@ __export(db_exports, {
   bounds: () => bounds3,
   draw: () => draw3,
   layer: () => layer3,
+  outline: () => outline3,
   overlay: () => overlay3,
   reach: () => reach3
 });
 var layer3 = "shapes";
 var reach3 = (shape) => shape.r * 1.25;
+function outline3(shape) {
+  const top = flatCircle(shape.at[0], shape.at[1], shape.r, shape.h + shape.lift);
+  const bottom = flatCircle(shape.at[0], shape.at[1], shape.r, shape.lift);
+  const points = [];
+  for (let i = 0; i <= 12; i++) {
+    const a = Math.PI + i / 12 * Math.PI;
+    points.push([top.cx + Math.cos(a) * top.rx, top.cy + Math.sin(a) * top.ry]);
+  }
+  for (let i = 0; i <= 12; i++) {
+    const a = i / 12 * Math.PI;
+    points.push([bottom.cx + Math.cos(a) * bottom.rx, bottom.cy + Math.sin(a) * bottom.ry]);
+  }
+  return points;
+}
 function bounds3(shape) {
   const top = flatCircle(shape.at[0], shape.at[1], shape.r, shape.h + shape.lift);
   const bottom = flatCircle(shape.at[0], shape.at[1], shape.r, 0);
@@ -535,11 +554,13 @@ __export(zone_exports, {
   bounds: () => bounds4,
   draw: () => draw4,
   layer: () => layer4,
+  outline: () => outline4,
   overlay: () => overlay4,
   reach: () => reach4
 });
 var layer4 = "floor";
 var reach4 = (shape) => Math.min(shape.w, shape.d) / 2;
+var outline4 = (shape) => corners(shape);
 function corners(shape) {
   const [x, y] = shape.at;
   const x0 = x - shape.w / 2, x1 = x + shape.w / 2, y0 = y - shape.d / 2, y1 = y + shape.d / 2;
@@ -559,12 +580,17 @@ __export(queue_exports, {
   bounds: () => bounds5,
   draw: () => draw5,
   layer: () => layer5,
+  outline: () => outline5,
   overlay: () => overlay5,
   reach: () => reach5
 });
 var layer5 = "shapes";
 var GAP = 1.25;
 var reach5 = () => 1;
+function outline5(shape) {
+  const [x0, y0, x1, y1] = bounds5(shape);
+  return [[x0, y0], [x1, y0], [x1, y1], [x0, y1]];
+}
 function items(shape) {
   const [dx, dy] = shape.dir;
   const length = Math.hypot(dx, dy) || 1;
@@ -594,53 +620,66 @@ __export(device_exports, {
   bounds: () => bounds6,
   draw: () => draw6,
   layer: () => layer6,
+  outline: () => outline6,
   overlay: () => overlay6,
   reach: () => reach6
 });
 var layer6 = "shapes";
-var SIZES = {
-  laptop: { slab: [6.4, 5.6], base: [4.4, 3.6], baseH: 4, screenW: 3.4, screenH: 42 },
-  phone: { slab: [4.4, 4.4], base: [1.9, 1.1], baseH: 3, screenW: 1.7, screenH: 46 }
-};
-var SLAB_H = 14;
-var sizeOf = (shape) => SIZES[shape.kind] ?? SIZES.laptop;
-var reach6 = (shape) => Math.min(...sizeOf(shape).slab) * 0.55;
+var SLAB2 = 6;
+var SLAB_H = 16;
+var SCREEN = { gap: 0.7, thick: 0.35, inset: 0.9, z0: 19, z1: 66 };
+var KEYBOARD = { depth: 2.7, z0: 16, z1: 19 };
+var PHONE = { thick: 0.45, width: 2.4, z0: 17, z1: 80 };
+var reach6 = () => SLAB2 * 0.55;
+var platform = (shape) => box(shape.at[0], shape.at[1], SLAB2, SLAB2, SLAB_H);
+var outline6 = (shape) => platform(shape).outline;
 function bounds6(shape) {
-  const size = sizeOf(shape);
-  const g = box(shape.at[0], shape.at[1], size.slab[0], size.slab[1], SLAB_H);
-  return boundsOf([...g.outline, project(shape.at[0], shape.at[1], SLAB_H + size.screenH + 40), [g.outline[3][0], g.outline[3][1] + 34]]);
+  const g = platform(shape);
+  return boundsOf([...g.outline, project(shape.at[0], shape.at[1], (shape.kind === "phone" ? PHONE.z1 : SCREEN.z1) + 30), [g.outline[3][0], g.outline[3][1] + 34]]);
 }
 function draw6(shape) {
+  const g = platform(shape);
+  const slab = tag("path", { d: roundedPath(g.outline, 12), class: "st-shadow", transform: "translate(0 8)" }) + tag("path", { d: roundedPath(g.outline, 12), fill: COLORS.slab.side }) + tag("path", { d: roundedPath(g.top, 12), fill: COLORS.slab.top }) + tag("path", { d: roundedPath(g.outline, 12), class: "st-edge" });
+  return slab + (shape.kind === "phone" ? phone(shape) : laptop(shape));
+}
+function slabBox([x0, x1], [y0, y1], z0, z1, colors, corner) {
+  const g = box((x0 + x1) / 2, (y0 + y1) / 2, x1 - x0, y1 - y0, z1 - z0, z0);
+  return tag("path", { d: roundedPath(g.outline, corner), fill: colors.left }) + tag("path", { d: roundedPath(g.right, corner), fill: colors.front }) + tag("path", { d: roundedPath(g.top, corner), fill: colors.top }) + tag("path", { d: roundedPath(g.outline, corner), class: "st-edge-device" });
+}
+function laptop(shape) {
   const [x, y] = shape.at;
-  const size = sizeOf(shape);
-  const slab = box(x, y, size.slab[0], size.slab[1], SLAB_H);
-  const [bw, bd] = size.base;
-  const base = box(x + 0.3, y, bw, bd, size.baseH, SLAB_H);
-  return tag("path", { d: roundedPath(slab.outline, 14), class: "st-shadow", transform: "translate(0 8)" }) + tag("path", { d: roundedPath(slab.outline, 14), fill: COLORS.slab.side }) + tag("path", { d: roundedPath(slab.top, 14), fill: COLORS.slab.top }) + tag("path", { d: roundedPath(slab.outline, 14), class: "st-edge" }) + tag("path", { d: roundedPath(base.outline, 4), fill: "#e9e3da" }) + tag("path", { d: roundedPath(base.top, 4), fill: "#f6f2ec" }) + keys(x + 0.3, y, bw, bd, SLAB_H + size.baseH, shape.kind) + tag("path", { d: roundedPath(base.outline, 4), class: "st-edge" }) + screen(x + 0.3 - bw / 2 + 0.15, y, size, SLAB_H + size.baseH);
+  const back = x - SLAB2 / 2;
+  const ys = [y - SLAB2 / 2 + SCREEN.inset, y + SLAB2 / 2 - SCREEN.inset];
+  const screenX = [back + SCREEN.gap, back + SCREEN.gap + SCREEN.thick];
+  const keyboardX = [screenX[1], screenX[1] + KEYBOARD.depth];
+  const width = (ys[1] - ys[0]) * 14;
+  const [kx, ky] = project(keyboardX[0] + 0.15, ys[0], KEYBOARD.z1);
+  const columns = Math.floor((width - 6) / 4.7);
+  let keys = "";
+  for (let row = 0; row < 4; row++) for (let col = 0; col < columns; col++) keys += `<rect x="${r2(3 + col * 4.7)}" y="${r2(2.5 + row * 4.3)}" width="3.8" height="3.3" rx="0.7"/>`;
+  const touchpad = `<rect x="${r2(width / 2 - 10)}" y="21.5" width="20" height="9" rx="1.6"/>`;
+  const [sx, sy] = project(screenX[1], ys[0], SCREEN.z1);
+  const height = SCREEN.z1 - SCREEN.z0;
+  const glassW = width - 6.8;
+  const picture = `<rect x="3.4" y="3.4" width="${r2(glassW)}" height="${height - 8}" rx="1.5" class="st-device-glass"/><rect x="3.4" y="3.4" width="${r2(glassW)}" height="7" rx="1.5" class="st-device-bar"/><circle cx="6.6" cy="6.9" r="1" fill="#E5534B"/><circle cx="9.6" cy="6.9" r="1" fill="#EFB041"/><circle cx="12.6" cy="6.9" r="1" fill="#7FC278"/><rect x="16" y="5" width="${r2(glassW - 16)}" height="3.8" rx="1.9" class="st-device-glass"/><rect x="7" y="14.5" width="${r2(glassW - 7.2)}" height="12" rx="1.5" class="st-device-page"/><rect x="7" y="29.5" width="${r2((glassW - 7.2) * 0.62)}" height="2.6" rx="1.3" class="st-device-line"/><rect x="7" y="34" width="${r2((glassW - 7.2) * 0.8)}" height="2.6" rx="1.3" class="st-device-line"/>`;
+  return slabBox(keyboardX, ys, KEYBOARD.z0, KEYBOARD.z1, { top: "#efeae4", front: "#cfc8c0", left: "#ddd6ce" }, 2.5) + `<g class="st-keys" transform="matrix(1 -0.5 1 0.5 ${r2(kx)} ${r2(ky)})">${keys}${touchpad}</g>` + slabBox(screenX, ys, SCREEN.z0, SCREEN.z1, { top: "#8b8580", front: "#3d3935", left: "#6e6862" }, 3) + `<g transform="matrix(1 -0.5 0 1 ${r2(sx)} ${r2(sy)})">${picture}</g>`;
 }
-function keys(cx, cy, w, d, z, kind) {
-  if (kind === "phone") return "";
-  const [ox, oy] = project(cx - w / 2 + 0.95, cy - d / 2 + 0.35, z);
-  let rects = "";
-  for (let row = 0; row < 5; row++) {
-    for (let col = 0; col < 11; col++) rects += `<rect x="${r2(col * 0.21 * 14)}" y="${r2(row * 0.26 * 14)}" width="2.2" height="2.6" rx="0.5"/>`;
-  }
-  return `<g class="st-keys" transform="matrix(1 -0.5 1 0.5 ${r2(ox)} ${r2(oy)})">${rects}</g>`;
-}
-function screen(x, y, size, z) {
-  const width = size.screenW * 14;
-  const height = size.screenH;
-  const [ox, oy] = project(x, y - size.screenW / 2, z + height);
-  const inner = width - 7;
-  const hero = Math.min(10, height * 0.3);
-  return `<g transform="matrix(1 -0.5 0 1 ${r2(ox)} ${r2(oy)})"><rect x="0" y="0" width="${r2(width)}" height="${height}" rx="3.5" class="st-device-frame"/><rect x="3.5" y="3.5" width="${r2(inner)}" height="${height - 7}" rx="1.5" class="st-device-glass"/><rect x="3.5" y="3.5" width="${r2(inner)}" height="5.5" rx="1.5" class="st-device-bar"/><circle cx="6.5" cy="6.2" r="0.9" fill="#E5534B"/><circle cx="9" cy="6.2" r="0.9" fill="#EFB041"/><circle cx="11.5" cy="6.2" r="0.9" fill="#7FC278"/><rect x="7" y="12" width="${r2(inner - 7)}" height="${r2(hero)}" rx="1.2" class="st-device-page"/><rect x="7" y="${r2(14 + hero)}" width="${r2((inner - 7) * 0.7)}" height="2.2" rx="1" class="st-device-line"/><rect x="7" y="${r2(18 + hero)}" width="${r2((inner - 7) * 0.5)}" height="2.2" rx="1" class="st-device-line"/></g>`;
+function phone(shape) {
+  const [x, y] = shape.at;
+  const xs = [x - 0.2, x - 0.2 + PHONE.thick];
+  const ys = [y - PHONE.width / 2, y + PHONE.width / 2];
+  const [sx, sy] = project(xs[1], ys[0], PHONE.z1);
+  const width = PHONE.width * 14;
+  const height = PHONE.z1 - PHONE.z0;
+  const inner = width - 5;
+  const picture = `<rect x="2.5" y="2.5" width="${r2(inner)}" height="${height - 5}" rx="3.5" class="st-device-glass"/><rect x="${r2(width / 2 - 4)}" y="3.6" width="8" height="2.2" rx="1.1" fill="#3d3935"/><rect x="2.5" y="8" width="${r2(inner)}" height="7" class="st-device-bar"/><rect x="5" y="19" width="${r2(inner * 0.62)}" height="7" rx="3" class="st-device-line"/><rect x="${r2(2.5 + inner * 0.32)}" y="29" width="${r2(inner * 0.6)}" height="7" rx="3" class="st-device-page"/><rect x="5" y="39" width="${r2(inner * 0.5)}" height="7" rx="3" class="st-device-line"/>`;
+  return slabBox(xs, ys, PHONE.z0, PHONE.z1, { top: "#8b8580", front: "#3d3935", left: "#6e6862" }, 3) + `<g transform="matrix(1 -0.5 0 1 ${r2(sx)} ${r2(sy)})">${picture}</g>`;
 }
 function overlay6(shape) {
   const [x, y] = shape.at;
-  const size = sizeOf(shape);
-  const front = project(x + size.slab[0] / 2, y - size.slab[1] / 2, 0);
-  const top = project(x - size.slab[0] / 2, y + size.slab[1] / 2, SLAB_H + size.screenH + 18);
-  return labelBelow(project(x, y)[0], front[1] + 26, shape.label, "user") + tagsAbove(project(x, y)[0], top[1], (shape.tags ?? []).map((t) => ["tag", t]));
+  const front = project(x + SLAB2 / 2, y - SLAB2 / 2, 0);
+  const top = project(x - SLAB2 / 2, y, (shape.kind === "phone" ? PHONE.z1 : SCREEN.z1) + 16);
+  return labelBelow(project(x, y)[0], front[1] + 24, shape.label, "user") + tagsAbove(top[0], top[1], (shape.tags ?? []).map((t) => ["tag", t]));
 }
 
 // src/shapes/ghost.js
@@ -649,11 +688,13 @@ __export(ghost_exports, {
   bounds: () => bounds7,
   draw: () => draw7,
   layer: () => layer7,
+  outline: () => outline7,
   overlay: () => overlay7,
   reach: () => reach7
 });
 var layer7 = "shapes";
 var reach7 = (shape) => shape.s * 0.62;
+var outline7 = (shape) => box(shape.at[0], shape.at[1], shape.s, shape.s, shape.h).outline;
 var bounds7 = (shape) => bounds({ ...shape, lift: 0 });
 function draw7(shape) {
   const g = box(shape.at[0], shape.at[1], shape.s, shape.s, shape.h);
@@ -669,11 +710,16 @@ __export(ring_exports, {
   bounds: () => bounds8,
   draw: () => draw8,
   layer: () => layer8,
+  outline: () => outline8,
   overlay: () => overlay8,
   reach: () => reach8
 });
 var layer8 = "shapes";
 var reach8 = (shape) => shape.r;
+function outline8(shape) {
+  const [x0, y0, x1, y1] = bounds8(shape);
+  return [[x0, y0 + 20], [x1, y0 + 20], [x1, y1 - 30], [x0, y1 - 30]];
+}
 function bounds8(shape) {
   const c = flatCircle(shape.at[0], shape.at[1], shape.r + 1);
   return [c.cx - c.rx, c.cy - c.ry - 30, c.cx + c.rx, c.cy + c.ry + 34];
@@ -737,15 +783,35 @@ function floorRoute(link, from, to) {
 function linkPoints(link, scene) {
   const from = scene[link.from];
   const to = scene[link.to];
-  const floor = floorRoute(link, from, to);
-  floor[0] = moveTowards(floor[0], floor[1], SHAPE_DRAWERS[from.type].reach(from));
-  floor[floor.length - 1] = moveTowards(floor[floor.length - 1], floor[floor.length - 2], SHAPE_DRAWERS[to.type].reach(to));
-  return floor.map(([x, y]) => project(x, y, 0));
+  const line = floorRoute(link, from, to).map(([x, y]) => project(x, y, 0));
+  const start = trimStart(line, SHAPE_DRAWERS[from.type].outline(from));
+  return trimStart(start.reverse(), SHAPE_DRAWERS[to.type].outline(to)).reverse();
 }
-function moveTowards([x, y], [tx, ty], distance) {
-  const length = Math.hypot(tx - x, ty - y) || 1;
-  const step = Math.min(distance, length * 0.45) / length;
-  return [x + (tx - x) * step, y + (ty - y) * step];
+var MARGIN = 3;
+function trimStart(points, polygon) {
+  const length = lengthOf(points);
+  const keep = Math.min(12, length / 2);
+  let inside = 0;
+  while (inside < length - keep && isInside(pointAt(points, inside), polygon)) inside += 1;
+  return cutFrom(points, Math.min(inside + MARGIN, length - keep));
+}
+function cutFrom(points, distance) {
+  const rest = [pointAt(points, distance)];
+  let walked = 0;
+  for (let i = 1; i < points.length; i++) {
+    walked += Math.hypot(points[i][0] - points[i - 1][0], points[i][1] - points[i - 1][1]);
+    if (walked > distance) rest.push(points[i]);
+  }
+  return rest;
+}
+function isInside([x, y], polygon) {
+  let inside = false;
+  for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i++) {
+    const [xi, yi] = polygon[i];
+    const [xj, yj] = polygon[j];
+    if (yi > y !== yj > y && x < (xj - xi) * (y - yi) / (yj - yi) + xi) inside = !inside;
+  }
+  return inside;
 }
 function lengthOf(points) {
   let total = 0;
@@ -827,7 +893,7 @@ var Stage = class {
         </pattern>
         <radialGradient id="${id}-fade"><stop offset="0.55" stop-color="#fff"/><stop offset="1" stop-color="#000"/></radialGradient>
         <mask id="${id}-mask"><rect x="-3000" y="-3000" width="6000" height="6000" fill="url(#${id}-fade)"/></mask>
-        <marker id="${id}-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="4.5" markerHeight="4.5" markerUnits="strokeWidth" orient="auto-start-reverse">
+        <marker id="${id}-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="5.5" markerHeight="5.5" markerUnits="strokeWidth" orient="auto-start-reverse">
           <path d="M0,0 L10,5 L0,10 Z" class="st-arrow-head"/>
         </marker>
       </defs>
@@ -987,14 +1053,24 @@ function failMark(x, y, opacity) {
 // src/dots.js
 var SPEED = 120;
 function routePoints(flow, step) {
-  const points = flow.route.flatMap((id, i) => {
+  const points = [];
+  const gaps = [];
+  let walked = 0;
+  flow.route.forEach((id, i) => {
     const line = linkPoints(step.links[id], step.scene);
-    return i === 0 ? line : line.slice(1);
+    if (i > 0) {
+      const jump = Math.hypot(line[0][0] - points.at(-1)[0], line[0][1] - points.at(-1)[1]);
+      gaps.push([walked, walked + jump]);
+      walked += jump;
+    }
+    points.push(...line);
+    walked += lengthOf(line);
   });
-  return flow.reverse ? points.reverse() : points;
+  if (flow.reverse) return { points: points.reverse(), gaps: gaps.map(([a, b]) => [walked - b, walked - a]) };
+  return { points, gaps };
 }
-function startFlow(flow, points, random = Math.random) {
-  return { flow, points, length: lengthOf(points), dots: [], due: random(), random };
+function startFlow(flow, { points, gaps = [] }, random = Math.random) {
+  return { flow, points, gaps, length: lengthOf(points), dots: [], due: random(), random };
 }
 function tick(state, seconds, { spawning = true } = {}) {
   const events = [];
@@ -1026,9 +1102,10 @@ function tick(state, seconds, { spawning = true } = {}) {
   return events;
 }
 function where(state, dot) {
-  const along = dot.back ? state.length - dot.distance : dot.distance;
-  const [x, y] = pointAt(state.points, Math.min(along, state.length));
-  return { x, y, kind: dot.back ? "res" : state.flow.kind };
+  const along = Math.min(dot.back ? state.length - dot.distance : dot.distance, state.length);
+  const [x, y] = pointAt(state.points, along);
+  const hidden = state.gaps.some(([a, b]) => along > a && along < b);
+  return { x, y, kind: dot.back ? "res" : state.flow.kind, hidden };
 }
 
 // src/transition.js
@@ -1258,7 +1335,7 @@ var Player = class {
     for (const event of events) this.effects.push({ ...event, age: 0 });
   }
   dots() {
-    return [...this.oldFlows, ...this.flows].flatMap((state) => state.dots.map((dot) => where(state, dot)));
+    return [...this.oldFlows, ...this.flows].flatMap((state) => state.dots.map((dot) => where(state, dot))).filter((dot) => !dot.hidden);
   }
   destroy() {
     cancelAnimationFrame(this.raf);

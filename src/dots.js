@@ -5,17 +5,28 @@ import { lengthOf, pointAt, linkPoints } from './links.js';
 
 export const SPEED = 120; // px per second
 
-// The screen points of a whole route.
+// The screen points of a whole route, plus the gaps: where one link ends at a shape and the next one
+// starts on the shape's other side, the dot is passing *through* the shape, so it isn't drawn there.
 export function routePoints(flow, step) {
-  const points = flow.route.flatMap((id, i) => {
+  const points = [];
+  const gaps = [];
+  let walked = 0;
+  flow.route.forEach((id, i) => {
     const line = linkPoints(step.links[id], step.scene);
-    return i === 0 ? line : line.slice(1);
+    if (i > 0) {
+      const jump = Math.hypot(line[0][0] - points.at(-1)[0], line[0][1] - points.at(-1)[1]);
+      gaps.push([walked, walked + jump]);
+      walked += jump;
+    }
+    points.push(...line);
+    walked += lengthOf(line);
   });
-  return flow.reverse ? points.reverse() : points;
+  if (flow.reverse) return { points: points.reverse(), gaps: gaps.map(([a, b]) => [walked - b, walked - a]) };
+  return { points, gaps };
 }
 
-export function startFlow(flow, points, random = Math.random) {
-  return { flow, points, length: lengthOf(points), dots: [], due: random(), random };
+export function startFlow(flow, { points, gaps = [] }, random = Math.random) {
+  return { flow, points, gaps, length: lengthOf(points), dots: [], due: random(), random };
 }
 
 // Move the flow `seconds` forward. Returns what happened, for the arrival rings and fail bursts:
@@ -48,7 +59,8 @@ export function tick(state, seconds, { spawning = true } = {}) {
 
 // Where a dot is on screen, and what it looks like. A bounced dot is a response on its way back.
 export function where(state, dot) {
-  const along = dot.back ? state.length - dot.distance : dot.distance;
-  const [x, y] = pointAt(state.points, Math.min(along, state.length));
-  return { x, y, kind: dot.back ? 'res' : state.flow.kind };
+  const along = Math.min(dot.back ? state.length - dot.distance : dot.distance, state.length);
+  const [x, y] = pointAt(state.points, along);
+  const hidden = state.gaps.some(([a, b]) => along > a && along < b);
+  return { x, y, kind: dot.back ? 'res' : state.flow.kind, hidden };
 }

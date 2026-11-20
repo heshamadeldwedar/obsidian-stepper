@@ -24,7 +24,7 @@ export class Stage {
         </pattern>
         <radialGradient id="${id}-fade"><stop offset="0.55" stop-color="#fff"/><stop offset="1" stop-color="#000"/></radialGradient>
         <mask id="${id}-mask"><rect x="-3000" y="-3000" width="6000" height="6000" fill="url(#${id}-fade)"/></mask>
-        <marker id="${id}-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="4.5" markerHeight="4.5" markerUnits="strokeWidth" orient="auto-start-reverse">
+        <marker id="${id}-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="5.5" markerHeight="5.5" markerUnits="strokeWidth" orient="auto-start-reverse">
           <path d="M0,0 L10,5 L0,10 Z" class="st-arrow-head"/>
         </marker>
       </defs>

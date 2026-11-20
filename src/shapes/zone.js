@@ -5,6 +5,7 @@ import { boundsOf } from './block.js';
 
 export const layer = 'floor';
 export const reach = shape => Math.min(shape.w, shape.d) / 2;
+export const outline = shape => corners(shape);
 
 function corners(shape) {
   const [x, y] = shape.at;

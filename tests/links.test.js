@@ -1,6 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { lengthOf, pointAt, linkPoints, linePath, drawLink, drawLinkLabel } from '../src/links.js';
+import { lengthOf, pointAt, linkPoints, linePath, drawLink, drawLinkLabel, isInside, floorRoute } from '../src/links.js';
+import { SHAPE_DRAWERS } from '../src/shapes/index.js';
 import { readLesson } from '../src/lesson.js';
 
 const step = readLesson({
@@ -18,10 +19,21 @@ test('length and points along a line', () => {
   assert.deepEqual(pointAt(line, 99), [10, 10], 'past the end stays at the end');
 });
 
-test('a link stops at the edge of each shape, not its center', () => {
+test('a link stops just outside each shape outline, so both arrowheads show', () => {
   const points = linkPoints(step.links.l, step.scene);
-  const full = lengthOf([[0, -4], [140, 66]]);
-  assert.ok(lengthOf(points) < full * 0.8);
+  const a = SHAPE_DRAWERS.block.outline(step.scene.a);
+  const b = SHAPE_DRAWERS.block.outline(step.scene.b);
+  assert.equal(isInside(points[0], a), false);
+  assert.equal(isInside(points.at(-1), b), false);
+  assert.ok(lengthOf(points) < 140, 'shorter than center to center');
+});
+
+test('links follow the grid: straight on one grid line, else one corner', () => {
+  const at = (x, y) => ({ at: [x, y] });
+  assert.equal(floorRoute({ bend: 'x' }, at(0, 0), at(5, 0)).length, 2);
+  assert.deepEqual(floorRoute({ bend: 'x' }, at(0, 0), at(5, 3)), [[0, 0], [5, 0], [5, 3]]);
+  assert.deepEqual(floorRoute({ bend: 'y' }, at(0, 0), at(5, 3)), [[0, 0], [0, 3], [5, 3]]);
+  assert.equal(floorRoute({ bend: 'none' }, at(0, 0), at(5, 3)).length, 2);
 });
 
 test('corners through via points are rounded', () => {

@@ -6,6 +6,10 @@ import { labelBelow } from './common.js';
 
 export const layer = 'shapes';
 export const reach = shape => shape.r;
+export function outline(shape) {
+  const [x0, y0, x1, y1] = bounds(shape);
+  return [[x0, y0 + 20], [x1, y0 + 20], [x1, y1 - 30], [x0, y1 - 30]];
+}
 
 export function bounds(shape) {
   const c = flatCircle(shape.at[0], shape.at[1], shape.r + 1);

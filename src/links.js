@@ -18,20 +18,47 @@ export function floorRoute(link, from, to) {
   return [from.at, link.bend === 'y' ? [fx, ty] : [tx, fy], to.at];
 }
 
-// The link's screen points. The ends stop at each shape's edge, not its center.
+// The link's screen points, on the floor. Each end stops just outside its shape's outline on screen,
+// so an arrowhead is never hidden behind the shape (a raised platform covers the floor behind it).
 export function linkPoints(link, scene) {
   const from = scene[link.from];
   const to = scene[link.to];
-  const floor = floorRoute(link, from, to);
-  floor[0] = moveTowards(floor[0], floor[1], SHAPE_DRAWERS[from.type].reach(from));
-  floor[floor.length - 1] = moveTowards(floor[floor.length - 1], floor[floor.length - 2], SHAPE_DRAWERS[to.type].reach(to));
-  return floor.map(([x, y]) => project(x, y, 0));
+  const line = floorRoute(link, from, to).map(([x, y]) => project(x, y, 0));
+  const start = trimStart(line, SHAPE_DRAWERS[from.type].outline(from));
+  return trimStart(start.reverse(), SHAPE_DRAWERS[to.type].outline(to)).reverse();
 }
 
-function moveTowards([x, y], [tx, ty], distance) {
-  const length = Math.hypot(tx - x, ty - y) || 1;
-  const step = Math.min(distance, length * 0.45) / length;
-  return [x + (tx - x) * step, y + (ty - y) * step];
+const MARGIN = 3; // px of space between a shape and the end of its arrow
+
+// Drop the part of the line that is inside `polygon`, measured from the line's start.
+export function trimStart(points, polygon) {
+  const length = lengthOf(points);
+  const keep = Math.min(12, length / 2); // always leave a little line, even if shapes overlap
+  let inside = 0;
+  while (inside < length - keep && isInside(pointAt(points, inside), polygon)) inside += 1;
+  return cutFrom(points, Math.min(inside + MARGIN, length - keep));
+}
+
+// The line from `distance` px onwards.
+function cutFrom(points, distance) {
+  const rest = [pointAt(points, distance)];
+  let walked = 0;
+  for (let i = 1; i < points.length; i++) {
+    walked += Math.hypot(points[i][0] - points[i - 1][0], points[i][1] - points[i - 1][1]);
+    if (walked > distance) rest.push(points[i]);
+  }
+  return rest;
+}
+
+// Is the point inside the polygon? (Count how many edges a ray to the right crosses.)
+export function isInside([x, y], polygon) {
+  let inside = false;
+  for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i++) {
+    const [xi, yi] = polygon[i];
+    const [xj, yj] = polygon[j];
+    if ((yi > y) !== (yj > y) && x < ((xj - xi) * (y - yi)) / (yj - yi) + xi) inside = !inside;
+  }
+  return inside;
 }
 
 // Total length of a line through `points`.

@@ -5,6 +5,7 @@ import { bounds as blockBounds } from './block.js';
 
 export const layer = 'shapes';
 export const reach = shape => shape.s * 0.62;
+export const outline = shape => box(shape.at[0], shape.at[1], shape.s, shape.s, shape.h).outline;
 export const bounds = shape => blockBounds({ ...shape, lift: 0 });
 
 export function draw(shape) {
