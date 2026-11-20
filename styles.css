@@ -1,0 +1,18 @@
+/* Stepper plugin styles. Every rule starts with .stepper so nothing leaks into your theme. */
+
+.stepper {
+  border: 1.5px solid var(--text-normal);
+  border-radius: 12px;
+  padding: 16px;
+}
+
+.stepper-title {
+  font-weight: 800;
+  font-size: 1.4em;
+}
+
+.stepper-error {
+  color: var(--text-error);
+  font-family: var(--font-monospace);
+  white-space: pre-wrap;
+}
