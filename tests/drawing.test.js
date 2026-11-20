@@ -31,6 +31,9 @@ test('camera fits every box with room around it, and moves smoothly', () => {
   const view = fit([[0, 0, 400, 200]], 0.1);
   assert.ok(view.x < 0 && view.y < 0);
   assert.ok(view.x + view.w > 400 && view.y + view.h > 200);
+  const clear = fit([[0, 0, 400, 200]], 0.1, 360, { top: 0.2, right: 0.3 });
+  assert.ok(clear.y < view.y, 'room above for the numbers bar');
+  assert.ok(clear.x + clear.w > view.x + view.w * 1.2, 'room on the right for the card');
   assert.deepEqual(between({ x: 0, y: 0, w: 10, h: 10 }, { x: 10, y: 10, w: 20, h: 20 }, 0.5), { x: 5, y: 5, w: 15, h: 15 });
 });
 

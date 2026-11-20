@@ -682,7 +682,7 @@ function overlay8(shape) {
 var SHAPE_DRAWERS = { block: block_exports, crowd: crowd_exports, db: db_exports, zone: zone_exports, queue: queue_exports, device: device_exports, ghost: ghost_exports, ring: ring_exports };
 
 // src/camera.js
-function fit(boxes, padding = 0.1, minWidth = 360) {
+function fit(boxes, padding = 0.1, minWidth = 360, keepClear = {}) {
   if (boxes.length === 0) return { x: -200, y: -150, w: 400, h: 300 };
   let [x0, y0, x1, y1] = [Infinity, Infinity, -Infinity, -Infinity];
   for (const [a, b, c, d] of boxes) {
@@ -695,7 +695,10 @@ function fit(boxes, padding = 0.1, minWidth = 360) {
   const h2 = y1 - y0;
   const pad = Math.max(w, h2) * padding;
   const cx = (x0 + x1) / 2;
-  return { x: cx - w / 2 - pad, y: y0 - pad, w: w + pad * 2, h: h2 + pad * 2 };
+  const view = { x: cx - w / 2 - pad, y: y0 - pad, w: w + pad * 2, h: h2 + pad * 2 };
+  const { top = 0, right = 0, bottom = 0 } = keepClear;
+  const extraTop = view.h * top;
+  return { x: view.x, y: view.y - extraTop, w: view.w * (1 + right), h: view.h * (1 + bottom) + extraTop };
 }
 function between(a, b, t) {
   const at = (key) => a[key] + (b[key] - a[key]) * t;
@@ -862,8 +865,8 @@ var Stage = class {
     this.layers.dots.innerHTML = dots.map(drawDot).join("") + effects.map(drawEffect).join("");
   }
   // The view that shows all these shapes.
-  fitView(shapes) {
-    return fit(shapes.map((shape) => SHAPE_DRAWERS[shape.type].bounds(shape)));
+  fitView(shapes, keepClear) {
+    return fit(shapes.map((shape) => SHAPE_DRAWERS[shape.type].bounds(shape)), 0.1, 360, keepClear);
   }
   // The camera's view (from fitView or an animation), before the reader's own zoom and pan.
   setView(view) {
@@ -1105,7 +1108,7 @@ var Player = class {
     const from = this.step;
     this.step = step;
     this.stage.resetZoom();
-    const toView = this.stage.fitView(Object.values(step.scene));
+    const toView = this.stage.fitView(Object.values(step.scene), { top: 0.16, right: step.card ? 0.3 : 0, bottom: step.card ? 0.2 : 0 });
     if (!from || !animate || this.reduceMotion) {
       this.change = null;
       this.oldFlows = [];

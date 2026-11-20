@@ -1,7 +1,9 @@
 // The camera decides which part of the drawing is visible: the SVG viewBox.
 
 // A view that fits every box [minX, minY, maxX, maxY] with some room around it.
-export function fit(boxes, padding = 0.1, minWidth = 360) {
+// `keepClear` leaves extra room (as a share of the view) where the panel draws on top of the diagram:
+// the numbers bar along the top, and the napkin card in the bottom-right corner.
+export function fit(boxes, padding = 0.1, minWidth = 360, keepClear = {}) {
   if (boxes.length === 0) return { x: -200, y: -150, w: 400, h: 300 };
   let [x0, y0, x1, y1] = [Infinity, Infinity, -Infinity, -Infinity];
   for (const [a, b, c, d] of boxes) {
@@ -11,7 +13,10 @@ export function fit(boxes, padding = 0.1, minWidth = 360) {
   const h = y1 - y0;
   const pad = Math.max(w, h) * padding;
   const cx = (x0 + x1) / 2;
-  return { x: cx - w / 2 - pad, y: y0 - pad, w: w + pad * 2, h: h + pad * 2 };
+  const view = { x: cx - w / 2 - pad, y: y0 - pad, w: w + pad * 2, h: h + pad * 2 };
+  const { top = 0, right = 0, bottom = 0 } = keepClear;
+  const extraTop = view.h * top;
+  return { x: view.x, y: view.y - extraTop, w: view.w * (1 + right), h: view.h * (1 + bottom) + extraTop };
 }
 
 // The view part way (t from 0 to 1) between two views.

@@ -91,8 +91,8 @@ export class Stage {
   }
 
   // The view that shows all these shapes.
-  fitView(shapes) {
-    return fit(shapes.map(shape => SHAPE_DRAWERS[shape.type].bounds(shape)));
+  fitView(shapes, keepClear) {
+    return fit(shapes.map(shape => SHAPE_DRAWERS[shape.type].bounds(shape)), 0.1, 360, keepClear);
   }
 
   // The camera's view (from fitView or an animation), before the reader's own zoom and pan.

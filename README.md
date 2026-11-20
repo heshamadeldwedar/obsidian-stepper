@@ -152,6 +152,7 @@ The code is plain JavaScript. Start reading at `src/main.js`. Each file begins w
 ### After 1.0 (your feedback)
 - [x] Inline blocks hide Replay and Pause (full screen keeps them; R and Space still work)
 - [x] Blocks are wider than the note text: up to 1200px, centered (`dev/obsidian-layout.html` checks it)
+- [x] The camera keeps shapes out from under the numbers bar and the napkin card
 
 ## Not in v1
 - A visual editor (blocks are written as YAML)

@@ -27,7 +27,8 @@ export class Player {
     const from = this.step;
     this.step = step;
     this.stage.resetZoom();
-    const toView = this.stage.fitView(Object.values(step.scene));
+    // Keep shapes out from under the numbers bar (top) and the napkin card (bottom right).
+    const toView = this.stage.fitView(Object.values(step.scene), { top: 0.16, right: step.card ? 0.3 : 0, bottom: step.card ? 0.2 : 0 });
     if (!from || !animate || this.reduceMotion) {
       this.change = null;
       this.oldFlows = [];

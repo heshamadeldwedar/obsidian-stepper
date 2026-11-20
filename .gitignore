@@ -4,3 +4,5 @@ dev/*.png
 .DS_Store
 dev/smoke.html
 dev/layout-*.png
+dev/check1.json
+dev/check2.json

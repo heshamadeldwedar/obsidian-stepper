@@ -5,13 +5,15 @@ import { View } from '../src/view.js';
 import { EXAMPLE } from './example-lesson.js';
 import { GALLERY } from './gallery-lesson.js';
 import NAPKIN from './napkin.json';
+import CHECK1 from './check1.json';
+import CHECK2 from './check2.json';
 
 const params = new URLSearchParams(location.search);
 const root = document.getElementById('root');
 if (params.get('dark')) { document.body.classList.add('theme-dark'); document.body.style.background = '#1b1916'; }
 if (params.get('width')) root.style.maxWidth = `${params.get('width')}px`;
 if (root.parentElement.id !== 'block' && !params.get('width')) root.style.maxWidth = '1100px';
-const lessons = { gallery: GALLERY, napkin: NAPKIN };
+const lessons = { gallery: GALLERY, napkin: NAPKIN, check1: CHECK1, check2: CHECK2 };
 const pick = Object.keys(lessons).find(name => params.get(name));
 const view = new View(root, readLesson(pick ? lessons[pick] : EXAMPLE));
 view.goTo(Number(params.get('step') ?? 1) - 1, { animate: false });
