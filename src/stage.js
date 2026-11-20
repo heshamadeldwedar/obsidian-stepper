@@ -1,7 +1,7 @@
 // The diagram area: one <svg> with layers (floor, links, dots, shapes, overlays), drawn from a scene.
 // Shapes are kept by id, so a shape that changes is redrawn in place, and one that stays the same is left alone.
 import { SHAPE_DRAWERS } from './shapes/index.js';
-import { depth } from './iso.js';
+import { depth, project, roundedPath } from './iso.js';
 import { fit, viewBox } from './camera.js';
 import { drawLink, drawLinkLabel } from './links.js';
 import { DOTS } from './colors.js';
@@ -24,16 +24,16 @@ export class Stage {
         </pattern>
         <radialGradient id="${id}-fade"><stop offset="0.55" stop-color="#fff"/><stop offset="1" stop-color="#000"/></radialGradient>
         <mask id="${id}-mask"><rect x="-3000" y="-3000" width="6000" height="6000" fill="url(#${id}-fade)"/></mask>
-        <marker id="${id}-arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
-          <path d="M1,1 L9,5 L1,9" class="st-arrow-head"/>
+        <marker id="${id}-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="4.5" markerHeight="4.5" markerUnits="strokeWidth" orient="auto-start-reverse">
+          <path d="M0,0 L10,5 L0,10 Z" class="st-arrow-head"/>
         </marker>
       </defs>
       <rect class="st-grid" x="-1500" y="-1500" width="3000" height="3000" fill="url(#${id}-grid)" mask="url(#${id}-mask)"/>
-      <g class="st-layer-floor"></g><g class="st-layer-links"></g><g class="st-layer-dots"></g><g class="st-layer-shapes"></g><g class="st-layer-over"></g>`;
+      <g class="st-layer-spots"></g><g class="st-layer-floor"></g><g class="st-layer-links"></g><g class="st-layer-dots"></g><g class="st-layer-shapes"></g><g class="st-layer-over"></g>`;
     this.el.appendChild(this.svg);
     this.arrowId = `${id}-arrow`;
     this.layers = {};
-    for (const name of ['floor', 'links', 'dots', 'shapes', 'over']) this.layers[name] = this.svg.querySelector(`.st-layer-${name}`);
+    for (const name of ['spots', 'floor', 'links', 'dots', 'shapes', 'over']) this.layers[name] = this.svg.querySelector(`.st-layer-${name}`);
     this.drawn = new Map(); // id → { g, overlay, html }
     this.zoom = { scale: 1, dx: 0, dy: 0 };
     this.listenForZoom();
@@ -88,6 +88,17 @@ export class Stage {
   // Draw the moving dots and the short effects (arrival rings, fail bursts). Called every frame.
   drawDots(dots, effects) {
     this.layers.dots.innerHTML = dots.map(drawDot).join('') + effects.map(drawEffect).join('');
+  }
+
+  // A soft green glow on the floor under shapes that just changed or landed. Each spot: { shape, age 0–1 }.
+  drawSpots(spots) {
+    const html = spots.map(({ shape, age }) => {
+      const r = SHAPE_DRAWERS[shape.type].reach(shape) * 1.25;
+      const corners = [[-r, -r], [r, -r], [r, r], [-r, r]].map(([dx, dy]) => project(shape.at[0] + dx, shape.at[1] + dy));
+      const fade = 1 - age;
+      return `<path d="${roundedPath(corners, 10)}" class="st-spot" opacity="${Math.round(fade * 100) / 100}"/>`;
+    }).join('');
+    if (html !== this.spotsHtml) { this.layers.spots.innerHTML = html; this.spotsHtml = html; }
   }
 
   // The view that shows all these shapes.

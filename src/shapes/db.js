@@ -20,12 +20,14 @@ export function draw(shape) {
   const shadow = flatCircle(x, y, shape.r, 0);
   const colors = shapeColors(shape);
   const { rx, ry } = top;
-  const body = `M${top.cx - rx},${top.cy} L${bottom.cx - rx},${bottom.cy} A${rx},${ry} 0 0 0 ${bottom.cx + rx},${bottom.cy} L${top.cx + rx},${top.cy} Z`;
+  // The side: down the left, round the bottom, up the right. The fill closes it; the outline stays open,
+  // so no straight line is drawn across the top (the top ellipse already draws that edge).
+  const side = `M${top.cx - rx},${top.cy} L${bottom.cx - rx},${bottom.cy} A${rx},${ry} 0 0 0 ${bottom.cx + rx},${bottom.cy} L${top.cx + rx},${top.cy}`;
   return (
     tag('ellipse', { cx: shadow.cx, cy: shadow.cy + 5, rx, ry, class: 'st-shadow' }) +
-    tag('path', { d: body, fill: colors.side }) +
+    tag('path', { d: side + ' Z', fill: colors.side }) +
     tag('ellipse', { cx: top.cx, cy: top.cy, rx, ry, fill: colors.top }) +
-    tag('path', { d: body, class: 'st-edge' }) +
+    tag('path', { d: side, class: 'st-edge' }) +
     tag('ellipse', { cx: top.cx, cy: top.cy, rx, ry, class: 'st-edge' }) +
     icon(shape.glyph, top.cx, top.cy + shape.h / 2 + ry * 0.5, 16)
   );

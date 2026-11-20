@@ -38,8 +38,8 @@ var SHAPES = {
 var DOT_KINDS = ["req", "res", "msg", "write", "heavy", "slow", "ping", "poison", "fail", "mine"];
 var STEP_KINDS = ["problem", "setup", "technique", "solution", "insight", "tradeoff", "recap"];
 var CALLOUT_KINDS = ["tip", "insight", "warn", "next"];
-var LINK_DEFAULTS = { via: [], style: "solid", heads: "end", label: "", labelAt: 0.5 };
-var LINK_STYLES = ["solid", "dashed", "off", "beat", "cut"];
+var LINK_DEFAULTS = { via: [], bend: "x", style: "solid", heads: "end", label: "", labelAt: null };
+var LINK_STYLES = ["solid", "dashed", "dotted", "off", "beat", "cut"];
 var LessonError = class extends Error {
   constructor(path, message) {
     super(path ? `${path}: ${message}` : message);
@@ -126,6 +126,7 @@ function nextLinks(previous, changes = {}, scene, path) {
     }
     oneOf(link.style, LINK_STYLES, `${where2}.style`);
     oneOf(link.heads, ["end", "both", "none"], `${where2}.heads`);
+    oneOf(link.bend, ["x", "y", "none"], `${where2}.bend`);
     links[id] = link;
   }
   return links;
@@ -516,8 +517,8 @@ function draw3(shape) {
   const shadow = flatCircle(x, y, shape.r, 0);
   const colors = shapeColors(shape);
   const { rx, ry } = top;
-  const body = `M${top.cx - rx},${top.cy} L${bottom.cx - rx},${bottom.cy} A${rx},${ry} 0 0 0 ${bottom.cx + rx},${bottom.cy} L${top.cx + rx},${top.cy} Z`;
-  return tag("ellipse", { cx: shadow.cx, cy: shadow.cy + 5, rx, ry, class: "st-shadow" }) + tag("path", { d: body, fill: colors.side }) + tag("ellipse", { cx: top.cx, cy: top.cy, rx, ry, fill: colors.top }) + tag("path", { d: body, class: "st-edge" }) + tag("ellipse", { cx: top.cx, cy: top.cy, rx, ry, class: "st-edge" }) + icon(shape.glyph, top.cx, top.cy + shape.h / 2 + ry * 0.5, 16);
+  const side = `M${top.cx - rx},${top.cy} L${bottom.cx - rx},${bottom.cy} A${rx},${ry} 0 0 0 ${bottom.cx + rx},${bottom.cy} L${top.cx + rx},${top.cy}`;
+  return tag("ellipse", { cx: shadow.cx, cy: shadow.cy + 5, rx, ry, class: "st-shadow" }) + tag("path", { d: side + " Z", fill: colors.side }) + tag("ellipse", { cx: top.cx, cy: top.cy, rx, ry, fill: colors.top }) + tag("path", { d: side, class: "st-edge" }) + tag("ellipse", { cx: top.cx, cy: top.cy, rx, ry, class: "st-edge" }) + icon(shape.glyph, top.cx, top.cy + shape.h / 2 + ry * 0.5, 16);
 }
 function overlay3(shape) {
   const [x, y] = shape.at;
@@ -597,32 +598,49 @@ __export(device_exports, {
   reach: () => reach6
 });
 var layer6 = "shapes";
-var SIZES = { laptop: { w: 3.4, d: 2.6, screen: 2.8, tall: 30 }, phone: { w: 2.6, d: 2.6, screen: 1.3, tall: 38 } };
-var BASE = 6;
-var reach6 = (shape) => SIZES[shape.kind]?.w * 0.6;
+var SIZES = {
+  laptop: { slab: [6.4, 5.6], base: [4.4, 3.6], baseH: 4, screenW: 3.4, screenH: 42 },
+  phone: { slab: [4.4, 4.4], base: [1.9, 1.1], baseH: 3, screenW: 1.7, screenH: 46 }
+};
+var SLAB_H = 14;
+var sizeOf = (shape) => SIZES[shape.kind] ?? SIZES.laptop;
+var reach6 = (shape) => Math.min(...sizeOf(shape).slab) * 0.55;
 function bounds6(shape) {
-  const size = SIZES[shape.kind] ?? SIZES.laptop;
-  const g = box(shape.at[0], shape.at[1], size.w, size.d, BASE);
-  return boundsOf([...g.outline, project(shape.at[0], shape.at[1], BASE + size.tall + 40), [g.outline[3][0], g.outline[3][1] + 34]]);
+  const size = sizeOf(shape);
+  const g = box(shape.at[0], shape.at[1], size.slab[0], size.slab[1], SLAB_H);
+  return boundsOf([...g.outline, project(shape.at[0], shape.at[1], SLAB_H + size.screenH + 40), [g.outline[3][0], g.outline[3][1] + 34]]);
 }
 function draw6(shape) {
   const [x, y] = shape.at;
-  const size = SIZES[shape.kind] ?? SIZES.laptop;
-  const g = box(x, y, size.w, size.d, BASE);
-  const back = y + size.d / 2 - 0.5;
-  const left = x - size.screen / 2;
-  const right = x + size.screen / 2;
-  const frame = [project(left, back, BASE), project(right, back, BASE), project(right, back, BASE + size.tall), project(left, back, BASE + size.tall)];
-  const inset = 3;
-  const glass = [project(left + 0.2, back, BASE + inset), project(right - 0.2, back, BASE + inset), project(right - 0.2, back, BASE + size.tall - inset), project(left + 0.2, back, BASE + size.tall - inset)];
-  return tag("path", { d: roundedPath(g.outline, 8), class: "st-shadow", transform: "translate(0 5)" }) + tag("path", { d: roundedPath(g.outline, 8), fill: COLORS.slab.side }) + tag("path", { d: roundedPath(g.top, 8), fill: COLORS.slab.top }) + tag("path", { d: roundedPath(g.outline, 8), class: "st-edge" }) + tag("path", { d: roundedPath(frame, 4), class: "st-device-frame" }) + tag("path", { d: roundedPath(glass, 2), class: "st-device-glass" });
+  const size = sizeOf(shape);
+  const slab = box(x, y, size.slab[0], size.slab[1], SLAB_H);
+  const [bw, bd] = size.base;
+  const base = box(x + 0.3, y, bw, bd, size.baseH, SLAB_H);
+  return tag("path", { d: roundedPath(slab.outline, 14), class: "st-shadow", transform: "translate(0 8)" }) + tag("path", { d: roundedPath(slab.outline, 14), fill: COLORS.slab.side }) + tag("path", { d: roundedPath(slab.top, 14), fill: COLORS.slab.top }) + tag("path", { d: roundedPath(slab.outline, 14), class: "st-edge" }) + tag("path", { d: roundedPath(base.outline, 4), fill: "#e9e3da" }) + tag("path", { d: roundedPath(base.top, 4), fill: "#f6f2ec" }) + keys(x + 0.3, y, bw, bd, SLAB_H + size.baseH, shape.kind) + tag("path", { d: roundedPath(base.outline, 4), class: "st-edge" }) + screen(x + 0.3 - bw / 2 + 0.15, y, size, SLAB_H + size.baseH);
+}
+function keys(cx, cy, w, d, z, kind) {
+  if (kind === "phone") return "";
+  const [ox, oy] = project(cx - w / 2 + 0.95, cy - d / 2 + 0.35, z);
+  let rects = "";
+  for (let row = 0; row < 5; row++) {
+    for (let col = 0; col < 11; col++) rects += `<rect x="${r2(col * 0.21 * 14)}" y="${r2(row * 0.26 * 14)}" width="2.2" height="2.6" rx="0.5"/>`;
+  }
+  return `<g class="st-keys" transform="matrix(1 -0.5 1 0.5 ${r2(ox)} ${r2(oy)})">${rects}</g>`;
+}
+function screen(x, y, size, z) {
+  const width = size.screenW * 14;
+  const height = size.screenH;
+  const [ox, oy] = project(x, y - size.screenW / 2, z + height);
+  const inner = width - 7;
+  const hero = Math.min(10, height * 0.3);
+  return `<g transform="matrix(1 -0.5 0 1 ${r2(ox)} ${r2(oy)})"><rect x="0" y="0" width="${r2(width)}" height="${height}" rx="3.5" class="st-device-frame"/><rect x="3.5" y="3.5" width="${r2(inner)}" height="${height - 7}" rx="1.5" class="st-device-glass"/><rect x="3.5" y="3.5" width="${r2(inner)}" height="5.5" rx="1.5" class="st-device-bar"/><circle cx="6.5" cy="6.2" r="0.9" fill="#E5534B"/><circle cx="9" cy="6.2" r="0.9" fill="#EFB041"/><circle cx="11.5" cy="6.2" r="0.9" fill="#7FC278"/><rect x="7" y="12" width="${r2(inner - 7)}" height="${r2(hero)}" rx="1.2" class="st-device-page"/><rect x="7" y="${r2(14 + hero)}" width="${r2((inner - 7) * 0.7)}" height="2.2" rx="1" class="st-device-line"/><rect x="7" y="${r2(18 + hero)}" width="${r2((inner - 7) * 0.5)}" height="2.2" rx="1" class="st-device-line"/></g>`;
 }
 function overlay6(shape) {
   const [x, y] = shape.at;
-  const size = SIZES[shape.kind] ?? SIZES.laptop;
-  const front = project(x + size.w / 2, y - size.d / 2, 0);
-  const top = project(x, y, BASE + size.tall + 14);
-  return labelBelow(project(x, y)[0], front[1] + 22, shape.label, shape.kind === "phone" ? "smartphone" : "laptop") + tagsAbove(top[0], top[1], (shape.tags ?? []).map((t) => ["tag", t]));
+  const size = sizeOf(shape);
+  const front = project(x + size.slab[0] / 2, y - size.slab[1] / 2, 0);
+  const top = project(x - size.slab[0] / 2, y + size.slab[1] / 2, SLAB_H + size.screenH + 18);
+  return labelBelow(project(x, y)[0], front[1] + 26, shape.label, "user") + tagsAbove(project(x, y)[0], top[1], (shape.tags ?? []).map((t) => ["tag", t]));
 }
 
 // src/shapes/ghost.js
@@ -707,14 +725,22 @@ function between(a, b, t) {
 var viewBox = (v) => [v.x, v.y, v.w, v.h].map((n) => Math.round(n * 10) / 10).join(" ");
 
 // src/links.js
-var HEIGHT = 4;
+var LABEL_GAP = 20;
+function floorRoute(link, from, to) {
+  if (link.via?.length) return [from.at, ...link.via, to.at];
+  const [fx, fy] = from.at;
+  const [tx, ty] = to.at;
+  const onOneLine = Math.abs(fx - tx) < 0.01 || Math.abs(fy - ty) < 0.01;
+  if (onOneLine || link.bend === "none") return [from.at, to.at];
+  return [from.at, link.bend === "y" ? [fx, ty] : [tx, fy], to.at];
+}
 function linkPoints(link, scene) {
   const from = scene[link.from];
   const to = scene[link.to];
-  const floor = [from.at, ...link.via ?? [], to.at];
+  const floor = floorRoute(link, from, to);
   floor[0] = moveTowards(floor[0], floor[1], SHAPE_DRAWERS[from.type].reach(from));
   floor[floor.length - 1] = moveTowards(floor[floor.length - 1], floor[floor.length - 2], SHAPE_DRAWERS[to.type].reach(to));
-  return floor.map(([x, y]) => project(x, y, HEIGHT));
+  return floor.map(([x, y]) => project(x, y, 0));
 }
 function moveTowards([x, y], [tx, ty], distance) {
   const length = Math.hypot(tx - x, ty - y) || 1;
@@ -766,8 +792,24 @@ function drawLink(link, scene, arrowId) {
 function drawLinkLabel(link, scene) {
   if (!link.label) return "";
   const points = linkPoints(link, scene);
-  const [x, y] = pointAt(points, lengthOf(points) * link.labelAt);
-  return pill(x, y, link.label, { size: 10.5 });
+  if (link.labelAt === null && points.length === 3) {
+    const [x2, y2] = points[1];
+    return pill(x2, y2 + LABEL_GAP, link.label, { size: 10.5 });
+  }
+  const length = lengthOf(points);
+  const at = length * (link.labelAt ?? 0.65);
+  const [x, y] = pointAt(points, at);
+  const [ax, ay] = pointAt(points, Math.max(0, at - 1));
+  const [bx, by] = pointAt(points, Math.min(length, at + 1));
+  let [nx, ny] = [-(by - ay), bx - ax];
+  const size = Math.hypot(nx, ny) || 1;
+  if (ny < 0) {
+    nx = -nx;
+    ny = -ny;
+  }
+  const width = link.label.length * 10.5 * 0.6 + 20;
+  const push = LABEL_GAP + Math.abs(nx / size) * width * 0.45;
+  return pill(x + nx / size * push, y + ny / size * push, link.label, { size: 10.5 });
 }
 
 // src/stage.js
@@ -785,16 +827,16 @@ var Stage = class {
         </pattern>
         <radialGradient id="${id}-fade"><stop offset="0.55" stop-color="#fff"/><stop offset="1" stop-color="#000"/></radialGradient>
         <mask id="${id}-mask"><rect x="-3000" y="-3000" width="6000" height="6000" fill="url(#${id}-fade)"/></mask>
-        <marker id="${id}-arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
-          <path d="M1,1 L9,5 L1,9" class="st-arrow-head"/>
+        <marker id="${id}-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="4.5" markerHeight="4.5" markerUnits="strokeWidth" orient="auto-start-reverse">
+          <path d="M0,0 L10,5 L0,10 Z" class="st-arrow-head"/>
         </marker>
       </defs>
       <rect class="st-grid" x="-1500" y="-1500" width="3000" height="3000" fill="url(#${id}-grid)" mask="url(#${id}-mask)"/>
-      <g class="st-layer-floor"></g><g class="st-layer-links"></g><g class="st-layer-dots"></g><g class="st-layer-shapes"></g><g class="st-layer-over"></g>`;
+      <g class="st-layer-spots"></g><g class="st-layer-floor"></g><g class="st-layer-links"></g><g class="st-layer-dots"></g><g class="st-layer-shapes"></g><g class="st-layer-over"></g>`;
     this.el.appendChild(this.svg);
     this.arrowId = `${id}-arrow`;
     this.layers = {};
-    for (const name of ["floor", "links", "dots", "shapes", "over"]) this.layers[name] = this.svg.querySelector(`.st-layer-${name}`);
+    for (const name of ["spots", "floor", "links", "dots", "shapes", "over"]) this.layers[name] = this.svg.querySelector(`.st-layer-${name}`);
     this.drawn = /* @__PURE__ */ new Map();
     this.zoom = { scale: 1, dx: 0, dy: 0 };
     this.listenForZoom();
@@ -863,6 +905,19 @@ var Stage = class {
   // Draw the moving dots and the short effects (arrival rings, fail bursts). Called every frame.
   drawDots(dots, effects) {
     this.layers.dots.innerHTML = dots.map(drawDot).join("") + effects.map(drawEffect).join("");
+  }
+  // A soft green glow on the floor under shapes that just changed or landed. Each spot: { shape, age 0–1 }.
+  drawSpots(spots) {
+    const html = spots.map(({ shape, age }) => {
+      const r = SHAPE_DRAWERS[shape.type].reach(shape) * 1.25;
+      const corners2 = [[-r, -r], [r, -r], [r, r], [-r, r]].map(([dx, dy]) => project(shape.at[0] + dx, shape.at[1] + dy));
+      const fade = 1 - age;
+      return `<path d="${roundedPath(corners2, 10)}" class="st-spot" opacity="${Math.round(fade * 100) / 100}"/>`;
+    }).join("");
+    if (html !== this.spotsHtml) {
+      this.layers.spots.innerHTML = html;
+      this.spotsHtml = html;
+    }
   }
   // The view that shows all these shapes.
   fitView(shapes, keepClear) {
@@ -1085,6 +1140,15 @@ function easeOutBack(t) {
 
 // src/player.js
 var EFFECT_SECONDS = { arrive: 0.45, fail: 0.6 };
+var SPOT_SECONDS = 1.5;
+function spotsFor(plan) {
+  const spots = [];
+  for (const { from, to } of plan.stays) {
+    if (JSON.stringify(from) !== JSON.stringify(to)) spots.push({ id: to.id, wait: TIMING.morph[0] / 1e3, age: 0 });
+  }
+  plan.drops.forEach((shape, i) => spots.push({ id: shape.id, wait: (TIMING.dropStart + i * TIMING.dropGap + TIMING.dropLength * 0.6) / 1e3, age: 0 }));
+  return spots;
+}
 var Player = class {
   constructor(parent, { reduceMotion = false, speed = 1 } = {}) {
     this.stage = new Stage(parent);
@@ -1095,6 +1159,7 @@ var Player = class {
     this.flows = [];
     this.oldFlows = [];
     this.effects = [];
+    this.spots = [];
     this.change = null;
     this.frame = this.frame.bind(this);
     this.observer = new IntersectionObserver(([entry]) => {
@@ -1118,6 +1183,7 @@ var Player = class {
       this.oldFlows = this.flows;
       this.flows = [];
       this.change = { plan: planChange(from, step, this.stage.view, toView), ms: 0 };
+      this.spots = spotsFor(this.change.plan);
     }
     this.wake();
   }
@@ -1145,7 +1211,7 @@ var Player = class {
     this.stage.drawDots(this.dots(), this.effects);
   }
   get moving() {
-    return Boolean(this.change || this.flows.length || this.oldFlows.length || this.effects.length);
+    return Boolean(this.change || this.flows.length || this.oldFlows.length || this.effects.length || this.spots.length);
   }
   get running() {
     return !this.paused && this.visible && !this.reduceMotion && this.moving;
@@ -1164,6 +1230,12 @@ var Player = class {
     for (const state of this.flows) this.collect(tick(state, seconds));
     for (const state of this.oldFlows) this.collect(tick(state, seconds, { spawning: false }));
     this.oldFlows = this.oldFlows.filter((state) => state.dots.length);
+    for (const spot of this.spots) {
+      spot.wait -= seconds;
+      if (spot.wait <= 0) spot.age += seconds / SPOT_SECONDS;
+    }
+    this.spots = this.spots.filter((spot) => spot.age < 1);
+    this.stage.drawSpots(this.spots.filter((spot) => spot.wait <= 0 && this.step.scene[spot.id]).map((spot) => ({ shape: this.step.scene[spot.id], age: spot.age })));
     for (const effect of this.effects) effect.age += seconds / EFFECT_SECONDS[effect.type];
     this.effects = this.effects.filter((effect) => effect.age < 1);
     this.stage.drawDots(this.dots(), this.effects);
@@ -1194,6 +1266,20 @@ var Player = class {
     this.observer.disconnect();
   }
 };
+
+// src/numbers.js
+var PATTERN = /^([^\d-]*)(-?[\d,]*\.?\d+)(.*)$/;
+function countBetween(from, to, t) {
+  const a = PATTERN.exec(from);
+  const b = PATTERN.exec(to);
+  if (!a || !b || a[1] !== b[1] || a[3] !== b[3]) return null;
+  const start = Number(a[2].replace(/,/g, ""));
+  const end = Number(b[2].replace(/,/g, ""));
+  const decimals = (b[2].split(".")[1] ?? "").length;
+  const value = start + (end - start) * t;
+  const shown = value.toLocaleString("en-US", { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
+  return `${b[1]}${shown}${b[3]}`;
+}
 
 // src/view.js
 var KIND_LABELS = { problem: "Problem", setup: "Setup", technique: "Technique", solution: "Solution", insight: "Insight", tradeoff: "Trade-off", recap: "Recap" };
@@ -1307,14 +1393,34 @@ var View = class {
   updateChips(step) {
     for (const [key, el] of Object.entries(this.chipValues)) {
       const value = step.metrics[key] ?? "?";
-      if (el.textContent === value) continue;
-      el.textContent = value;
-      if (!this.shownOnce) continue;
+      const old = el.dataset.value ?? el.textContent;
+      if (old === value) continue;
+      el.dataset.value = value;
+      if (!this.shownOnce) {
+        el.textContent = value;
+        continue;
+      }
+      this.countUp(el, old, value);
       const chip = el.parentElement;
       chip.classList.remove("is-changed");
       void chip.offsetWidth;
       chip.classList.add("is-changed");
     }
+  }
+  // Count the number from its old value to the new one over 450 ms (or just swap text that isn't a number).
+  countUp(el, from, to) {
+    cancelAnimationFrame(el.countFrame);
+    if (countBetween(from, to, 0) === null || this.player.reduceMotion) {
+      el.textContent = to;
+      return;
+    }
+    const start = performance.now();
+    const step = (now) => {
+      const t = Math.min(1, (now - start) / 450);
+      el.textContent = countBetween(from, to, 1 - Math.pow(1 - t, 3));
+      if (t < 1) el.countFrame = requestAnimationFrame(step);
+    };
+    el.countFrame = requestAnimationFrame(step);
   }
   updatePanel(step) {
     const total = this.lesson.steps.length;

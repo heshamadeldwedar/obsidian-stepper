@@ -3,6 +3,7 @@
 import { h, iconEl } from './dom.js';
 import { Player } from './player.js';
 import { DOTS } from './colors.js';
+import { countBetween } from './numbers.js';
 
 const KIND_LABELS = { problem: 'Problem', setup: 'Setup', technique: 'Technique', solution: 'Solution', insight: 'Insight', tradeoff: 'Trade-off', recap: 'Recap' };
 const CALLOUTS = {
@@ -119,15 +120,30 @@ export class View {
   updateChips(step) {
     for (const [key, el] of Object.entries(this.chipValues)) {
       const value = step.metrics[key] ?? '?';
-      if (el.textContent === value) continue;
-      el.textContent = value;
-      if (!this.shownOnce) continue; // no flash on first load
-      // Restart the flash animation on the chip whose value changed.
+      const old = el.dataset.value ?? el.textContent;
+      if (old === value) continue;
+      el.dataset.value = value;
+      if (!this.shownOnce) { el.textContent = value; continue; } // no glow on first load
+      this.countUp(el, old, value);
+      // Restart the glow animation on the chip whose value changed.
       const chip = el.parentElement;
       chip.classList.remove('is-changed');
       void chip.offsetWidth;
       chip.classList.add('is-changed');
     }
+  }
+
+  // Count the number from its old value to the new one over 450 ms (or just swap text that isn't a number).
+  countUp(el, from, to) {
+    cancelAnimationFrame(el.countFrame);
+    if (countBetween(from, to, 0) === null || this.player.reduceMotion) { el.textContent = to; return; }
+    const start = performance.now();
+    const step = now => {
+      const t = Math.min(1, (now - start) / 450);
+      el.textContent = countBetween(from, to, 1 - Math.pow(1 - t, 3));
+      if (t < 1) el.countFrame = requestAnimationFrame(step);
+    };
+    el.countFrame = requestAnimationFrame(step);
   }
 
   updatePanel(step) {

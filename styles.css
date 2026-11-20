@@ -81,12 +81,13 @@
 
 /* Links (arrows) */
 .stepper .st-link { fill: none; stroke: var(--st-ink); stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
-.stepper .st-link-dashed { stroke-dasharray: 6 5; stroke-opacity: 0.7; }
+.stepper .st-link-dashed { stroke-dasharray: 5 5; stroke-width: 1.5; stroke-opacity: 0.65; }
+.stepper .st-link-dotted { stroke-dasharray: 0.1 5; stroke-width: 2.4; stroke-opacity: 0.75; }
 .stepper .st-link-off { stroke: none; }
 .stepper .st-link-beat { stroke-dasharray: 4 6; animation: stepper-beat 1.2s linear infinite; }
 .stepper .st-link-cut { stroke: var(--st-red); stroke-dasharray: 10 6; }
 .stepper .st-link-cut-mark { stroke: var(--st-red); stroke-width: 3; stroke-linecap: round; }
-.stepper .st-arrow-head { fill: none; stroke: var(--st-ink); stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.stepper .st-arrow-head { fill: var(--st-ink); stroke: none; }
 @keyframes stepper-beat { to { stroke-dashoffset: -20; } }
 
 /* ——— Layout: one column by default, diagram + side panel when the block is wide ——— */
@@ -113,8 +114,12 @@
 .stepper-chip { flex: none; min-width: 84px; padding: 4px 10px 5px; background: var(--st-sheet); border: 1.2px solid var(--st-line-strong); border-radius: 8px; transition: background 0.3s, border-color 0.3s; }
 .stepper-chip-label { font-size: 11px; font-weight: 700; letter-spacing: 0.6px; text-transform: uppercase; color: var(--st-muted); display: flex; gap: 4px; align-items: center; white-space: nowrap; }
 .stepper-chip-value { font-weight: 800; font-size: 14px; }
-.stepper-chip.is-changed { animation: stepper-flash 1.2s ease-out; }
-@keyframes stepper-flash { 0%, 35% { background: var(--st-green); border-color: var(--st-green-ink); } 100% { background: var(--st-sheet); } }
+.stepper-chip.is-changed { animation: stepper-glow 0.7s ease-out; }
+/* A green outline that fades, like the reference: the box itself keeps its color. */
+@keyframes stepper-glow {
+  0%, 30% { border-color: #5fae57; box-shadow: 0 0 0 3px rgba(127, 194, 120, 0.45); }
+  100% { border-color: var(--st-line-strong); box-shadow: 0 0 0 0 rgba(127, 194, 120, 0); }
+}
 .stepper-tools { position: absolute; z-index: 2; top: 10px; right: 10px; display: flex; gap: 6px; }
 .stepper-tool { display: inline-flex; align-items: center; gap: 5px; height: 28px; padding: 0 9px; border: 1.3px solid var(--st-ink); border-radius: 8px; background: var(--st-sheet); color: var(--st-ink); font-size: 12px; box-shadow: 1.5px 2px 0 var(--st-ink); }
 .stepper-tool:active { transform: translate(1px, 1px); box-shadow: 0.5px 1px 0 var(--st-ink); }
@@ -192,8 +197,12 @@
 .stepper .st-fail-x { stroke: #fff; stroke-width: 1.8; stroke-linecap: round; }
 
 /* Devices and ghosts */
-.stepper .st-device-frame { fill: #3b3631; stroke: var(--st-edge); stroke-width: 1.6; }
-.stepper .st-device-glass { fill: #e9e1f5; }
+.stepper .st-device-frame { fill: #3b3631; stroke: var(--st-edge); stroke-width: 1.4; }
+.stepper .st-device-glass { fill: #fbf8f4; }
+.stepper .st-device-bar { fill: #e4d9cb; }
+.stepper .st-device-page { fill: #d9cdf1; }
+.stepper .st-device-line { fill: #e4d9cb; }
+.stepper .st-keys rect { fill: #d8d0c4; }
 .stepper .st-ghost { fill: rgba(255, 250, 242, 0.35); stroke: var(--st-ink); stroke-opacity: 0.5; stroke-width: 1.5; stroke-dasharray: 5 4; }
 
 /* ——— Dark mode: follows Obsidian's theme. Only the variables change. ——— */
@@ -263,3 +272,6 @@
     margin-inline-start: calc((100% - var(--stepper-width)) / 2);
   }
 }
+
+/* Floor glow under a shape that just changed or landed */
+.stepper .st-spot { fill: rgba(127, 194, 120, 0.14); stroke: #7fc278; stroke-width: 2.5; filter: blur(1.5px); }

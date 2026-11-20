@@ -16,8 +16,8 @@ export const SHAPES = {
 export const DOT_KINDS = ['req', 'res', 'msg', 'write', 'heavy', 'slow', 'ping', 'poison', 'fail', 'mine'];
 export const STEP_KINDS = ['problem', 'setup', 'technique', 'solution', 'insight', 'tradeoff', 'recap'];
 export const CALLOUT_KINDS = ['tip', 'insight', 'warn', 'next'];
-const LINK_DEFAULTS = { via: [], style: 'solid', heads: 'end', label: '', labelAt: 0.5 };
-const LINK_STYLES = ['solid', 'dashed', 'off', 'beat', 'cut'];
+const LINK_DEFAULTS = { via: [], bend: 'x', style: 'solid', heads: 'end', label: '', labelAt: null };
+const LINK_STYLES = ['solid', 'dashed', 'dotted', 'off', 'beat', 'cut'];
 
 // A mistake in the YAML. `path` says where, like "steps[2].scene.s0".
 export class LessonError extends Error {
@@ -109,6 +109,7 @@ function nextLinks(previous, changes = {}, scene, path) {
     }
     oneOf(link.style, LINK_STYLES, `${where}.style`);
     oneOf(link.heads, ['end', 'both', 'none'], `${where}.heads`);
+    oneOf(link.bend, ['x', 'y', 'none'], `${where}.bend`);
     links[id] = link;
   }
   return links;

@@ -103,18 +103,24 @@ Every shape has `type` and `at: [x, y]` (grid units on the floor: +x goes down-r
 
 ## Links
 
+Links lie on the floor grid. If the two shapes are on one grid line (same `x` or same `y`), the link is straight. Otherwise it turns one rounded 90° corner.
+
 ```yaml
 links:
-  u: { from: users, to: web, via: [[0, 2]], style: dashed, heads: both, label: HTTPS, labelAt: 0.5 }
+  u: { from: users, to: web, style: dashed, heads: both, label: HTTPS }
+  v: { from: web, to: db, bend: y }              # go along y first, then x
+  w: { from: a, to: b, via: [[0, 2], [4, 2]] }   # your own corners
 ```
 
 | Field | Default | What |
 |---|---|---|
 | `from`, `to` | (required) | Shape ids |
-| `via` | `[]` | Corner points `[x, y]` on the way |
-| `style` | `solid` | `solid`, `dashed`, `off` (hidden, but dots still use it), `beat` (pulses), `cut` (broken) |
-| `heads` | `end` | `end`, `both`, `none` |
-| `label` | | A pill on the link, placed at `labelAt` (0 = start, 1 = end) |
+| `bend` | `x` | Which way the corner goes: `x` (along x first), `y` (along y first), `none` (straight across, ignoring the grid) |
+| `via` | `[]` | Your own corner points `[x, y]` (overrides `bend`) |
+| `style` | `solid` | `solid`, `dashed`, `dotted`, `off` (hidden, but dots still use it), `beat` (pulses), `cut` (broken) |
+| `heads` | `end` | `end`, `both`, `none` (small filled arrowheads) |
+| `label` | | A pill beside the link: under the corner of a bent link, or 65% of the way along a straight one |
+| `labelAt` | | Where along the link to put the label instead (0 = start, 1 = end) |
 
 ## Flows (moving dots)
 

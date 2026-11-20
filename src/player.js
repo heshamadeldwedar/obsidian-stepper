@@ -2,9 +2,21 @@
 // The loop only runs while the block is on screen, not paused, and something is moving, so it costs nothing otherwise.
 import { Stage } from './stage.js';
 import { startFlow, tick, routePoints, where } from './dots.js';
-import { planChange, stateAt } from './transition.js';
+import { planChange, stateAt, TIMING } from './transition.js';
 
 const EFFECT_SECONDS = { arrive: 0.45, fail: 0.6 };
+const SPOT_SECONDS = 1.5;
+
+// Which shapes get a floor glow, and when: shapes that changed glow as they change,
+// new shapes glow as they land.
+export function spotsFor(plan) {
+  const spots = [];
+  for (const { from, to } of plan.stays) {
+    if (JSON.stringify(from) !== JSON.stringify(to)) spots.push({ id: to.id, wait: TIMING.morph[0] / 1000, age: 0 });
+  }
+  plan.drops.forEach((shape, i) => spots.push({ id: shape.id, wait: (TIMING.dropStart + i * TIMING.dropGap + TIMING.dropLength * 0.6) / 1000, age: 0 }));
+  return spots;
+}
 
 export class Player {
   constructor(parent, { reduceMotion = false, speed = 1 } = {}) {
@@ -16,6 +28,7 @@ export class Player {
     this.flows = [];
     this.oldFlows = []; // the previous step's dots, finishing their trip during a step change
     this.effects = [];
+    this.spots = []; // floor glows under shapes that changed or landed: { id, wait, age }
     this.change = null; // { plan, ms } while a step change is playing
     this.frame = this.frame.bind(this);
     this.observer = new IntersectionObserver(([entry]) => { this.visible = entry.isIntersecting; this.wake(); });
@@ -39,6 +52,7 @@ export class Player {
       this.oldFlows = this.flows;
       this.flows = [];
       this.change = { plan: planChange(from, step, this.stage.view, toView), ms: 0 };
+      this.spots = spotsFor(this.change.plan);
     }
     this.wake();
   }
@@ -67,7 +81,7 @@ export class Player {
   }
 
   get moving() {
-    return Boolean(this.change || this.flows.length || this.oldFlows.length || this.effects.length);
+    return Boolean(this.change || this.flows.length || this.oldFlows.length || this.effects.length || this.spots.length);
   }
 
   get running() { return !this.paused && this.visible && !this.reduceMotion && this.moving; }
@@ -86,6 +100,9 @@ export class Player {
     for (const state of this.flows) this.collect(tick(state, seconds));
     for (const state of this.oldFlows) this.collect(tick(state, seconds, { spawning: false }));
     this.oldFlows = this.oldFlows.filter(state => state.dots.length);
+    for (const spot of this.spots) { spot.wait -= seconds; if (spot.wait <= 0) spot.age += seconds / SPOT_SECONDS; }
+    this.spots = this.spots.filter(spot => spot.age < 1);
+    this.stage.drawSpots(this.spots.filter(spot => spot.wait <= 0 && this.step.scene[spot.id]).map(spot => ({ shape: this.step.scene[spot.id], age: spot.age })));
     for (const effect of this.effects) effect.age += seconds / EFFECT_SECONDS[effect.type];
     this.effects = this.effects.filter(effect => effect.age < 1);
     this.stage.drawDots(this.dots(), this.effects);
