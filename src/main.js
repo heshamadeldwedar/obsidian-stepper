@@ -1,40 +1,40 @@
 // The only file that talks to Obsidian. It finds ```stepper blocks and puts a diagram in their place.
-import { Plugin, MarkdownRenderChild, parseYaml } from 'obsidian';
+import { Plugin, MarkdownRenderChild, MarkdownRenderer, parseYaml } from 'obsidian';
 import { readLesson } from './lesson.js';
-import { Stage } from './stage.js';
+import { View } from './view.js';
 
 export default class StepperPlugin extends Plugin {
   async onload() {
     this.registerMarkdownCodeBlockProcessor('stepper', (source, el, ctx) => {
-      ctx.addChild(new StepperBlock(el, source));
+      ctx.addChild(new StepperBlock(el, source, this, ctx.sourcePath));
     });
   }
 }
 
-// One ```stepper block in a note. Obsidian calls onunload when the block leaves the screen or the note closes.
+// One ```stepper block in a note. Obsidian calls onunload when the block is re-rendered or the note closes.
 class StepperBlock extends MarkdownRenderChild {
-  constructor(el, source) {
+  constructor(el, source, plugin, sourcePath) {
     super(el);
     this.source = source;
+    this.plugin = plugin;
+    this.sourcePath = sourcePath;
   }
 
   onload() {
-    const root = this.containerEl.createDiv({ cls: 'stepper' });
+    const root = this.containerEl.createDiv();
     try {
       const lesson = readLesson(parseYaml(this.source));
-      root.createDiv({ cls: 'stepper-title', text: lesson.title });
-      const stage = new Stage(root);
-      const shapes = Object.values(lesson.steps[0].scene);
-      stage.drawShapes(shapes);
-      stage.drawLinks(Object.values(lesson.steps[0].links), lesson.steps[0].scene);
-      stage.setView(stage.fitView(shapes));
+      this.view = new View(root, lesson, {
+        // Step text is Markdown, so [[links]], bold and tables work like anywhere else in the vault.
+        renderMarkdown: (text, el) => MarkdownRenderer.render(this.plugin.app, text, el, this.sourcePath, this),
+      });
     } catch (error) {
-      showError(root, error);
+      root.addClass('stepper');
+      root.createDiv({ cls: 'stepper-error', text: `Stepper: ${error.message}` });
     }
   }
-}
 
-function showError(root, error) {
-  root.empty();
-  root.createDiv({ cls: 'stepper-error', text: `Stepper: ${error.message}` });
+  onunload() {
+    this.view?.destroy();
+  }
 }

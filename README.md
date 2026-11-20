@@ -80,6 +80,19 @@ The code is plain JavaScript. Start reading at `src/main.js`. Each file begins w
 - [x] Name pills under crowds and databases, tags above shapes
 - [x] Unit tests (4 more, 18 total)
 
+### Phase 5: The panel
+- [x] Header: title, subtitle, pills (minutes, level, step count)
+- [x] Numbers bar: values start as `?`, fill in, and flash green when they change
+- [x] Step panel: "Step n / N", kind badge, title, Markdown text (links work), callout, "What changed"
+- [x] Back / **Next: <next step's name>** buttons
+- [x] Timeline: numbered dots you can click, done and current states
+- [x] "You'll learn" goals that tick as you reach their step
+- [x] The napkin card on the diagram, last line highlighted
+- [x] Legend of dot kinds
+- [x] Keyboard: ← → step, Space pause, R replay (only while the block has focus)
+- [x] Layout follows the block's own width: one column when narrow, side panel when wide
+- [x] Every button has a visible label or `aria-label`
+
 ## Credits
 
 Icons from [Lucide](https://lucide.dev) (ISC license). The look was inspired by the *Designed to Scale* course by Dilum Sanjaya. No code or artwork was copied from it.

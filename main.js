@@ -170,17 +170,6 @@ function oneOf(value, allowed, where) {
   return value;
 }
 
-// src/shapes/block.js
-var block_exports = {};
-__export(block_exports, {
-  bounds: () => bounds,
-  boundsOf: () => boundsOf,
-  draw: () => draw,
-  layer: () => layer,
-  overlay: () => overlay,
-  reach: () => reach
-});
-
 // src/icons.js
 var ICONS = {
   "server": '<rect width="20" height="8" x="2" y="2" rx="2" ry="2" /><rect width="20" height="8" x="2" y="14" rx="2" ry="2" /><line x1="6" x2="6.01" y1="6" y2="6" /><line x1="6" x2="6.01" y1="18" y2="18" />',
@@ -252,6 +241,33 @@ var ICONS = {
   "braces": '<path d="M8 3H7a2 2 0 0 0-2 2v5a2 2 0 0 1-2 2 2 2 0 0 1 2 2v5c0 1.1.9 2 2 2h1" /><path d="M16 21h1a2 2 0 0 0 2-2v-5c0-1.1.9-2 2-2a2 2 0 0 1-2-2V5a2 2 0 0 0-2-2h-1" />'
 };
 
+// src/dom.js
+function h(name, props = {}, children = []) {
+  const el = document.createElement(name);
+  if (props.cls) el.className = props.cls;
+  if (props.text !== void 0) el.textContent = props.text;
+  for (const [key, value] of Object.entries(props.attrs ?? {})) el.setAttribute(key, value);
+  for (const [event, handler] of Object.entries(props.on ?? {})) el.addEventListener(event, handler);
+  for (const child of [].concat(children)) if (child) el.append(child);
+  return el;
+}
+function iconEl(name, size = 14) {
+  const span = h("span", { cls: "stepper-icon" });
+  span.innerHTML = `<svg viewBox="0 0 24 24" width="${size}" height="${size}" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${ICONS[name] ?? ""}</svg>`;
+  return span;
+}
+
+// src/shapes/block.js
+var block_exports = {};
+__export(block_exports, {
+  bounds: () => bounds,
+  boundsOf: () => boundsOf,
+  draw: () => draw,
+  layer: () => layer,
+  overlay: () => overlay,
+  reach: () => reach
+});
+
 // src/svg.js
 function esc(text2) {
   return String(text2).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
@@ -273,12 +289,12 @@ function icon(name, x, y, size = 16, { cls = "st-icon", stroke = 2 } = {}) {
 }
 function pill(x, y, value, { icon: iconName = "", tone = "paper", size = 11 } = {}) {
   const w = textWidth(value, size) + 20 + (iconName ? size + 4 : 0);
-  const h = size + 10;
+  const h2 = size + 10;
   const left = x - w / 2;
   return tag(
     "g",
     { class: `st-pill st-tone-${tone}` },
-    tag("rect", { x: left + 1.5, y: y - h / 2 + 2, width: w, height: h, rx: h / 2, class: "st-pill-shadow" }) + tag("rect", { x: left, y: y - h / 2, width: w, height: h, rx: h / 2, class: "st-pill-bg" }) + (iconName ? icon(iconName, left + 10 + size / 2, y, size + 1, { cls: "st-pill-icon" }) : "") + text(left + w / 2 + (iconName ? (size + 4) / 2 : 0), y + size * 0.36, value, { size, cls: "st-pill-text" })
+    tag("rect", { x: left + 1.5, y: y - h2 / 2 + 2, width: w, height: h2, rx: h2 / 2, class: "st-pill-shadow" }) + tag("rect", { x: left, y: y - h2 / 2, width: w, height: h2, rx: h2 / 2, class: "st-pill-bg" }) + (iconName ? icon(iconName, left + 10 + size / 2, y, size + 1, { cls: "st-pill-icon" }) : "") + text(left + w / 2 + (iconName ? (size + 4) / 2 : 0), y + size * 0.36, value, { size, cls: "st-pill-text" })
   );
 }
 
@@ -307,17 +323,17 @@ function towards(from, to, distance) {
   const step = Math.min(distance, length / 2) / length;
   return [from[0] + dx * step, from[1] + dy * step];
 }
-function box(x, y, w, d, h, z = 0) {
+function box(x, y, w, d, h2, z = 0) {
   const x0 = x - w / 2, x1 = x + w / 2, y0 = y - d / 2, y1 = y + d / 2;
   const at = (px, py, pz) => project(px, py, pz);
-  const top = { a: at(x0, y0, z + h), b: at(x1, y0, z + h), c: at(x1, y1, z + h), d: at(x0, y1, z + h) };
+  const top = { a: at(x0, y0, z + h2), b: at(x1, y0, z + h2), c: at(x1, y1, z + h2), d: at(x0, y1, z + h2) };
   const bottom = { a: at(x0, y0, z), b: at(x1, y0, z), c: at(x1, y1, z) };
   return {
     top: [top.a, top.b, top.c, top.d],
     left: [top.a, top.b, bottom.b, bottom.a],
     right: [top.b, top.c, bottom.c, bottom.b],
     outline: [top.d, top.c, bottom.c, bottom.b, bottom.a, top.a],
-    center: at(x, y, z + h)
+    center: at(x, y, z + h2)
   };
 }
 function flatCircle(x, y, r, z = 0) {
@@ -337,6 +353,18 @@ var COLORS = {
   gray: { top: "#e6e1da", side: "#cbc3b8", ink: "#1d1b18" },
   slab: { top: "#f8f3ec", side: "#e2d8cb", ink: "#1d1b18" },
   ink: { top: "#fffaf2", side: "#e2d8cb", ink: "#1d1b18" }
+};
+var DOTS = {
+  req: "#ef9a4a",
+  res: "#7fc278",
+  msg: "#f2c94c",
+  write: "#9b7fd6",
+  heavy: "#e8834d",
+  slow: "#e3ae3c",
+  ping: "#7fc278",
+  poison: "#d9534f",
+  fail: "#e5534b",
+  mine: "#5b8fd6"
 };
 function mix(a, b, t) {
   const from = parseInt(a.slice(1), 16);
@@ -538,10 +566,10 @@ function fit(boxes, padding = 0.1, minWidth = 360) {
     y1 = Math.max(y1, d);
   }
   const w = Math.max(minWidth, x1 - x0);
-  const h = y1 - y0;
-  const pad = Math.max(w, h) * padding;
+  const h2 = y1 - y0;
+  const pad = Math.max(w, h2) * padding;
   const cx = (x0 + x1) / 2;
-  return { x: cx - w / 2 - pad, y: y0 - pad, w: w + pad * 2, h: h + pad * 2 };
+  return { x: cx - w / 2 - pad, y: y0 - pad, w: w + pad * 2, h: h2 + pad * 2 };
 }
 var viewBox = (v) => [v.x, v.y, v.w, v.h].map((n) => Math.round(n * 10) / 10).join(" ");
 
@@ -614,7 +642,7 @@ var counter = 0;
 var Stage = class {
   constructor(parent) {
     const id = `stepper-${++counter}`;
-    this.el = parent.createDiv ? parent.createDiv({ cls: "stepper-stage" }) : parent.appendChild(Object.assign(document.createElement("div"), { className: "stepper-stage" }));
+    this.el = parent.appendChild(Object.assign(document.createElement("div"), { className: "stepper-stage" }));
     this.svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
     this.svg.classList.add("stepper-svg");
     this.svg.innerHTML = `
@@ -708,35 +736,282 @@ var Stage = class {
 };
 var svgEl = (name) => document.createElementNS("http://www.w3.org/2000/svg", name);
 
+// src/player.js
+var Player = class {
+  constructor(parent) {
+    this.stage = new Stage(parent);
+    this.step = null;
+  }
+  show(step) {
+    const shapes = Object.values(step.scene);
+    this.stage.drawShapes(shapes);
+    this.stage.drawLinks(Object.values(step.links), step.scene);
+    this.stage.setView(this.stage.fitView(shapes));
+    this.step = step;
+  }
+  replay() {
+    if (this.step) this.show(this.step);
+  }
+  setPaused() {
+  }
+  destroy() {
+  }
+};
+
+// src/view.js
+var KIND_LABELS = { problem: "Problem", setup: "Setup", technique: "Technique", solution: "Solution", insight: "Insight", tradeoff: "Trade-off", recap: "Recap" };
+var CALLOUTS = {
+  tip: { label: "Good to know", icon: "lightbulb" },
+  insight: { label: "Key idea", icon: "sparkles" },
+  warn: { label: "Watch out", icon: "triangle-alert" },
+  next: { label: "Up next", icon: "arrow-right" }
+};
+var DOT_NAMES = {
+  req: "request",
+  res: "response",
+  msg: "message",
+  write: "write",
+  heavy: "heavy request",
+  slow: "slow request",
+  ping: "health check",
+  poison: "poison message",
+  fail: "failed request",
+  mine: "your request"
+};
+var View = class {
+  constructor(root, lesson, { renderMarkdown = plainMarkdown, onFullscreen = null } = {}) {
+    this.root = root;
+    this.lesson = lesson;
+    this.renderMarkdown = renderMarkdown;
+    this.index = -1;
+    root.classList.add("stepper");
+    root.setAttribute("tabindex", "0");
+    root.setAttribute("aria-label", `${lesson.title}: interactive diagram. Use the left and right arrow keys to change step.`);
+    root.addEventListener("keydown", (event) => this.onKey(event));
+    root.append(this.header(onFullscreen));
+    this.chips = h("div", { cls: "stepper-chips" });
+    this.card = h("div", { cls: "stepper-card" });
+    this.legend = h("div", { cls: "stepper-legend" });
+    this.pauseButton = this.toolButton("pause", "Pause", () => this.togglePause());
+    const tools = h("div", { cls: "stepper-tools" }, [this.toolButton("rotate-ccw", "Replay", () => this.player.replay()), this.pauseButton]);
+    const stageBox = h("div", { cls: "stepper-stage-box" }, [this.chips, tools, this.card, this.legend]);
+    this.player = new Player(stageBox);
+    this.timeline = h("ol", { cls: "stepper-timeline" });
+    this.panel = h("div", { cls: "stepper-panel" });
+    this.goals = h("ul", { cls: "stepper-goals" });
+    root.append(h("div", { cls: "stepper-body" }, [
+      h("div", { cls: "stepper-main" }, [stageBox, h("div", { cls: "stepper-timeline-box" }, [h("div", { cls: "stepper-eyebrow", text: "In this lesson" }), this.timeline])]),
+      h("div", { cls: "stepper-side" }, [this.panel, lesson.goals.length ? h("div", { cls: "stepper-goals-box" }, [h("div", { cls: "stepper-eyebrow", text: "You'll learn" }), this.goals]) : null])
+    ]));
+    this.buildChips();
+    this.buildTimeline();
+    this.buildLegend();
+    this.goTo(0);
+  }
+  header(onFullscreen) {
+    const { title, subtitle, tags, steps } = this.lesson;
+    const pills = [];
+    if (tags.minutes) pills.push(this.tagPill("clock", `${tags.minutes} min`, "sand"));
+    if (tags.level) pills.push(this.tagPill("gauge", capitalize(tags.level), "green"));
+    pills.push(this.tagPill("list-ordered", `${steps.length} steps`, "violet"));
+    if (onFullscreen) pills.push(this.toolButton("maximize-2", "Full screen", onFullscreen));
+    return h("div", { cls: "stepper-header" }, [
+      h("div", {}, [h("div", { cls: "stepper-title", text: title }), subtitle ? h("div", { cls: "stepper-subtitle", text: subtitle }) : null]),
+      h("div", { cls: "stepper-tags" }, pills)
+    ]);
+  }
+  // ——— Building the parts that stay the same for every step ———
+  buildChips() {
+    this.chipValues = {};
+    for (const metric of this.lesson.metrics) {
+      const value = h("div", { cls: "stepper-chip-value", text: "?" });
+      this.chipValues[metric.key] = value;
+      this.chips.append(h("div", { cls: "stepper-chip" }, [
+        h("div", { cls: "stepper-chip-label" }, [metric.icon ? iconEl(metric.icon, 11) : null, metric.label]),
+        value
+      ]));
+    }
+  }
+  buildTimeline() {
+    this.dots = this.lesson.steps.map((step, i) => {
+      const item = h("li", { cls: "stepper-timeline-step" }, [
+        h("button", { cls: "stepper-timeline-dot", text: String(i + 1), attrs: { "aria-label": `Step ${i + 1}: ${step.short}` }, on: { click: () => this.goTo(i) } }),
+        h("span", { cls: "stepper-timeline-name", text: step.short })
+      ]);
+      this.timeline.append(item);
+      return item;
+    });
+  }
+  buildLegend() {
+    for (const kind of this.lesson.legend) {
+      const mark = h("span", { cls: `stepper-legend-mark stepper-dot-${kind}` });
+      mark.style.background = DOTS[kind];
+      this.legend.append(h("span", { cls: "stepper-legend-item" }, [mark, DOT_NAMES[kind]]));
+    }
+  }
+  // ——— Changing step ———
+  goTo(index) {
+    const steps = this.lesson.steps;
+    if (index < 0 || index >= steps.length || index === this.index) return;
+    const step = steps[index];
+    this.index = index;
+    this.updateChips(step);
+    this.updatePanel(step);
+    this.updateCard(step);
+    this.dots.forEach((dot, i) => dot.className = `stepper-timeline-step${i < index ? " is-done" : ""}${i === index ? " is-current" : ""}`);
+    this.updateGoals();
+    this.player.show(step);
+    this.shownOnce = true;
+  }
+  updateChips(step) {
+    for (const [key, el] of Object.entries(this.chipValues)) {
+      const value = step.metrics[key] ?? "?";
+      if (el.textContent === value) continue;
+      el.textContent = value;
+      if (this.index === step.index && step.index === 0 && !this.shownOnce) continue;
+      const chip = el.parentElement;
+      chip.classList.remove("is-changed");
+      void chip.offsetWidth;
+      chip.classList.add("is-changed");
+    }
+  }
+  updatePanel(step) {
+    const total = this.lesson.steps.length;
+    const next = this.lesson.steps[step.index + 1];
+    const body = h("div", { cls: "stepper-text" });
+    this.renderMarkdown(step.text, body);
+    const changes = step.changes.length ? h("div", { cls: "stepper-changes" }, [h("div", { cls: "stepper-eyebrow", text: "What changed" }), ...step.changes.map(changeLine)]) : null;
+    this.panel.replaceChildren(
+      h("div", { cls: "stepper-panel-meta" }, [
+        h("span", { cls: "stepper-eyebrow", text: `Step ${step.index + 1} / ${total}` }),
+        step.kind ? h("span", { cls: `stepper-kind stepper-kind-${step.kind}`, text: KIND_LABELS[step.kind] }) : null
+      ]),
+      h("div", { cls: "stepper-panel-content" }, [
+        h("div", { cls: "stepper-step-title", text: step.title }),
+        body,
+        step.callout ? this.callout(step.callout) : null,
+        changes
+      ]),
+      h("div", { cls: "stepper-nav" }, [
+        h("button", { cls: "stepper-back", attrs: { "aria-label": "Back" }, on: { click: () => this.goTo(step.index - 1) } }, [iconEl("arrow-left"), "Back"]),
+        h(
+          "button",
+          { cls: "stepper-next", attrs: { "aria-label": next ? `Next: ${next.short}` : "Finished" }, on: { click: () => this.goTo(step.index + 1) } },
+          [next ? `Next: ${next.short}` : "Done \u2713", next ? iconEl("arrow-right") : null]
+        )
+      ]),
+      h("div", { cls: "stepper-hint", text: "\u2190 \u2192 step \xB7 R replay \xB7 Space pause" })
+    );
+    this.panel.querySelector(".stepper-back").disabled = step.index === 0;
+    this.panel.querySelector(".stepper-next").disabled = !next;
+  }
+  callout({ kind, text: text2 }) {
+    const info = CALLOUTS[kind];
+    const body = h("div", { cls: "stepper-callout-text" });
+    this.renderMarkdown(text2, body);
+    return h("div", { cls: `stepper-callout stepper-callout-${kind}` }, [
+      iconEl(info.icon, 16),
+      h("div", {}, [h("div", { cls: "stepper-eyebrow", text: info.label }), body])
+    ]);
+  }
+  // The napkin card on the diagram. The last line is the result, so it's highlighted.
+  updateCard(step) {
+    const card = step.card;
+    this.card.classList.toggle("is-hidden", !card);
+    if (!card) return;
+    this.card.replaceChildren(
+      h("div", { cls: "stepper-card-title" }, [card.icon ? iconEl(card.icon, 13) : null, card.title]),
+      ...card.lines.map((line, i) => {
+        const el = h("div", { cls: `stepper-card-line${i === card.lines.length - 1 ? " is-result" : ""}` });
+        boldText(line, el);
+        return el;
+      })
+    );
+  }
+  updateGoals() {
+    this.goals.replaceChildren(...this.lesson.goals.map((goal) => h("li", { cls: goal.step <= this.index ? "is-done" : "" }, [
+      h("span", { cls: "stepper-goal-box" }, goal.step <= this.index ? [iconEl("check", 11)] : []),
+      goal.text
+    ])));
+  }
+  // ——— Controls ———
+  toolButton(iconName, label, onClick) {
+    return h("button", { cls: "stepper-tool", attrs: { "aria-label": label, title: label }, on: { click: onClick } }, [iconEl(iconName, 13), h("span", { cls: "stepper-tool-text", text: label })]);
+  }
+  tagPill(iconName, text2, tone) {
+    return h("span", { cls: `stepper-tag stepper-tag-${tone}` }, [iconEl(iconName, 12), text2]);
+  }
+  togglePause() {
+    this.paused = !this.paused;
+    this.player.setPaused(this.paused);
+    this.pauseButton.replaceChildren(iconEl(this.paused ? "play" : "pause", 13), h("span", { cls: "stepper-tool-text", text: this.paused ? "Play" : "Pause" }));
+    this.pauseButton.setAttribute("aria-label", this.paused ? "Play" : "Pause");
+  }
+  onKey(event) {
+    if (event.target.closest("input, textarea")) return;
+    const actions = {
+      ArrowRight: () => this.goTo(this.index + 1),
+      ArrowLeft: () => this.goTo(this.index - 1),
+      " ": () => this.togglePause(),
+      r: () => this.player.replay(),
+      R: () => this.player.replay()
+    };
+    if (!actions[event.key]) return;
+    event.preventDefault();
+    actions[event.key]();
+  }
+  destroy() {
+    this.player.destroy();
+  }
+};
+function changeLine(line) {
+  const mark = line.startsWith("+") ? "+" : line.startsWith("~") ? "~" : "\u2022";
+  const text2 = mark === "\u2022" ? line : line.slice(1).trim();
+  return h("div", { cls: `stepper-change stepper-change-${mark === "+" ? "add" : mark === "~" ? "edit" : "note"}` }, [h("span", { cls: "stepper-change-mark", text: mark }), text2]);
+}
+function boldText(line, el) {
+  line.split(/(\*\*[^*]+\*\*)/).forEach((part) => {
+    el.append(part.startsWith("**") ? h("b", { text: part.slice(2, -2) }) : part);
+  });
+}
+function plainMarkdown(text2, el) {
+  for (const para of String(text2).split(/\n\s*\n/)) if (para.trim()) {
+    const p = h("p");
+    boldText(para, p);
+    el.append(p);
+  }
+}
+var capitalize = (s) => String(s).charAt(0).toUpperCase() + String(s).slice(1);
+
 // src/main.js
 var StepperPlugin = class extends import_obsidian.Plugin {
   async onload() {
     this.registerMarkdownCodeBlockProcessor("stepper", (source, el, ctx) => {
-      ctx.addChild(new StepperBlock(el, source));
+      ctx.addChild(new StepperBlock(el, source, this, ctx.sourcePath));
     });
   }
 };
 var StepperBlock = class extends import_obsidian.MarkdownRenderChild {
-  constructor(el, source) {
+  constructor(el, source, plugin, sourcePath) {
     super(el);
     this.source = source;
+    this.plugin = plugin;
+    this.sourcePath = sourcePath;
   }
   onload() {
-    const root = this.containerEl.createDiv({ cls: "stepper" });
+    const root = this.containerEl.createDiv();
     try {
       const lesson = readLesson((0, import_obsidian.parseYaml)(this.source));
-      root.createDiv({ cls: "stepper-title", text: lesson.title });
-      const stage = new Stage(root);
-      const shapes = Object.values(lesson.steps[0].scene);
-      stage.drawShapes(shapes);
-      stage.drawLinks(Object.values(lesson.steps[0].links), lesson.steps[0].scene);
-      stage.setView(stage.fitView(shapes));
+      this.view = new View(root, lesson, {
+        // Step text is Markdown, so [[links]], bold and tables work like anywhere else in the vault.
+        renderMarkdown: (text2, el) => import_obsidian.MarkdownRenderer.render(this.plugin.app, text2, el, this.sourcePath, this)
+      });
     } catch (error) {
-      showError(root, error);
+      root.addClass("stepper");
+      root.createDiv({ cls: "stepper-error", text: `Stepper: ${error.message}` });
     }
   }
+  onunload() {
+    this.view?.destroy();
+  }
 };
-function showError(root, error) {
-  root.empty();
-  root.createDiv({ cls: "stepper-error", text: `Stepper: ${error.message}` });
-}

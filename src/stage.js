@@ -11,7 +11,7 @@ export class Stage {
   constructor(parent) {
     // Ids must be unique on the page: a note can hold several stepper blocks.
     const id = `stepper-${++counter}`;
-    this.el = parent.createDiv ? parent.createDiv({ cls: 'stepper-stage' }) : parent.appendChild(Object.assign(document.createElement('div'), { className: 'stepper-stage' }));
+    this.el = parent.appendChild(Object.assign(document.createElement('div'), { className: 'stepper-stage' }));
     this.svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
     this.svg.classList.add('stepper-svg');
     // All drawing is built as text with every YAML value escaped (see svg.js esc), so innerHTML is safe here.
