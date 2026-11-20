@@ -6,8 +6,6 @@ import { project } from './iso.js';
 import { SHAPE_DRAWERS } from './shapes/index.js';
 import { tag, pill, r2 } from './svg.js';
 
-const LABEL_GAP = 20; // px between a line and its label, so the text sits beside the line, not on it
-
 // The link's corners on the floor: start, any corners, end (shape centers, before trimming).
 export function floorRoute(link, from, to) {
   if (link.via?.length) return [from.at, ...link.via, to.at];
@@ -112,26 +110,83 @@ export function drawLink(link, scene, arrowId) {
   return path + cut;
 }
 
-// The label pill sits just below the line (in the overlay layer, so shapes never cover it).
-// By default it goes at the corner of a bent link, or the middle of a straight one.
-export function drawLinkLabel(link, scene) {
-  if (!link.label) return '';
-  const points = linkPoints(link, scene);
-  if (link.labelAt === null && points.length === 3) {
-    const [x, y] = points[1];
-    return pill(x, y + LABEL_GAP, link.label, { size: 10.5 }); // under the corner
-  }
+// ——— Labels ———
+// Each label tries spots along its line (near where the author asked) and on both sides of it,
+// and takes the spot that overlaps the least: shapes, the other labels, and any line.
+// That keeps text off lines and shapes, the way the reference does it.
+
+const LABEL_SIZE = 10.5;
+const labelBox = text => ({ w: String(text).length * LABEL_SIZE * 0.6 + 20, h: LABEL_SIZE + 10 });
+
+// Where each link's label goes: { [link id]: [x, y] } (the pill's center).
+// `shapeBoxes` are [x0, y0, x1, y1] screen boxes the labels should keep off.
+export function placeLabels(links, scene, shapeBoxes) {
+  const lines = links.map(link => linkPoints(link, scene));
+  const linePoints = lines.flatMap(points => sample(points, 6));
+  const placed = [];
+  const spots = {};
+  links.forEach((link, i) => {
+    if (!link.label) return;
+    const points = lines[i];
+    const length = lengthOf(points);
+    // A bent link's label prefers its corner; a straight one prefers 65% of the way (its start is crowded by its own shape).
+    const cornerAt = points.length === 3 ? Math.hypot(points[1][0] - points[0][0], points[1][1] - points[0][1]) / length : 0.65;
+    const wanted = link.labelAt ?? cornerAt;
+    const { w, h } = labelBox(link.label);
+    let best = null;
+    for (const shift of [0, 0.08, -0.08, 0.16, -0.16, 0.24, -0.24, 0.32, -0.32]) {
+      const t = Math.min(0.9, Math.max(0.1, wanted + shift));
+      const [x, y] = pointAt(points, length * t);
+      const [nx, ny] = normalAt(points, length * t);
+      for (const side of [1, -1]) {
+        for (const gap of [10, 22]) {
+          // Far enough along the normal that the whole pill clears the line, plus the gap.
+          const push = gap + (Math.abs(nx) * w + Math.abs(ny) * h) / 2;
+          const cx = x + nx * side * push;
+          const cy = y + ny * side * push;
+          const rect = [cx - w / 2, cy - h / 2, cx + w / 2, cy + h / 2];
+          const cost =
+            shapeBoxes.reduce((sum, box) => sum + overlap(rect, box), 0) +
+            placed.reduce((sum, box) => sum + overlap(rect, box, 4) * 3, 0) +
+            linePoints.filter(p => inRect(p, rect, 3)).length * 60 +
+            Math.abs(shift) * 400 + (side === 1 ? 0 : 20) + (gap - 10);
+          if (!best || cost < best.cost) best = { cost, rect, center: [cx, cy] };
+        }
+      }
+    }
+    placed.push(best.rect);
+    spots[link.id] = best.center;
+  });
+  return spots;
+}
+
+export function drawLinkLabel(link, center) {
+  return link.label && center ? pill(center[0], center[1], link.label, { size: LABEL_SIZE }) : '';
+}
+
+// The unit normal of the line at `distance`, pointing down the screen (side 1 = below the line).
+function normalAt(points, distance) {
   const length = lengthOf(points);
-  const at = length * (link.labelAt ?? 0.65); // nearer the target: the start is usually crowded by its own shape
-  const [x, y] = pointAt(points, at);
-  // Step sideways off the line, to the side that points down the screen.
-  const [ax, ay] = pointAt(points, Math.max(0, at - 1));
-  const [bx, by] = pointAt(points, Math.min(length, at + 1));
+  const [ax, ay] = pointAt(points, Math.max(0, distance - 1));
+  const [bx, by] = pointAt(points, Math.min(length, distance + 1));
   let [nx, ny] = [-(by - ay), bx - ax];
   const size = Math.hypot(nx, ny) || 1;
   if (ny < 0) { nx = -nx; ny = -ny; }
-  const width = link.label.length * 10.5 * 0.6 + 20;
-  // Push far enough that the pill (about `width` wide) clears the line, not just its center.
-  const push = LABEL_GAP + Math.abs(nx / size) * width * 0.45;
-  return pill(x + (nx / size) * push, y + (ny / size) * push, link.label, { size: 10.5 });
+  return [nx / size, ny / size];
 }
+
+function sample(points, step) {
+  const length = lengthOf(points);
+  const out = [];
+  for (let d = 0; d <= length; d += step) out.push(pointAt(points, d));
+  return out;
+}
+
+// Area two boxes share, with an optional margin around the first.
+function overlap([a0, b0, a1, b1], [c0, d0, c1, d1], margin = 0) {
+  const w = Math.min(a1 + margin, c1) - Math.max(a0 - margin, c0);
+  const h = Math.min(b1 + margin, d1) - Math.max(b0 - margin, d0);
+  return w > 0 && h > 0 ? w * h : 0;
+}
+
+const inRect = ([x, y], [x0, y0, x1, y1], margin) => x > x0 - margin && x < x1 + margin && y > y0 - margin && y < y1 + margin;

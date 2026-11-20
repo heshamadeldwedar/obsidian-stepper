@@ -119,8 +119,8 @@ links:
 | `via` | `[]` | Your own corner points `[x, y]` (overrides `bend`) |
 | `style` | `solid` | `solid`, `dashed`, `dotted`, `off` (hidden, but dots still use it), `beat` (pulses), `cut` (broken) |
 | `heads` | `end` | `end`, `both`, `none` (small filled arrowheads) |
-| `label` | | A pill beside the link: under the corner of a bent link, or 65% of the way along a straight one |
-| `labelAt` | | Where along the link to put the label instead (0 = start, 1 = end) |
+| `label` | | A pill beside the link. It finds its own space: near the corner of a bent link (or 65% along a straight one), on whichever side overlaps shapes, other labels and lines the least |
+| `labelAt` | | Where along the link the label should try first (0 = start, 1 = end) |
 
 ## Flows (moving dots)
 

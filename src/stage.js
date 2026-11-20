@@ -3,7 +3,7 @@
 import { SHAPE_DRAWERS } from './shapes/index.js';
 import { depth, project, roundedPath } from './iso.js';
 import { fit, viewBox } from './camera.js';
-import { drawLink, drawLinkLabel } from './links.js';
+import { drawLink, drawLinkLabel, placeLabels } from './links.js';
 import { DOTS } from './colors.js';
 import { r2 } from './svg.js';
 
@@ -75,11 +75,14 @@ export class Stage {
   drawLinks(links, scene, opacity = {}) {
     let lines = '';
     let labels = '';
-    for (const link of links) {
+    const visible = links.filter(link => (opacity[link.id] ?? 1) > 0.01);
+    // Labels keep off every shape's body (its outline's box) and off each other.
+    const shapeBoxes = Object.values(scene).map(shape => boxOf(SHAPE_DRAWERS[shape.type].outline(shape)));
+    const spots = placeLabels(visible, scene, shapeBoxes);
+    for (const link of visible) {
       const fade = opacity[link.id] ?? 1;
-      if (fade <= 0.01) continue;
       lines += `<g opacity="${fade}">${drawLink(link, scene, this.arrowId)}</g>`;
-      labels += `<g opacity="${fade}">${drawLinkLabel(link, scene)}</g>`;
+      labels += `<g opacity="${fade}">${drawLinkLabel(link, spots[link.id])}</g>`;
     }
     if (lines !== this.linesHtml) { this.layers.links.innerHTML = lines; this.linesHtml = lines; }
     if (labels !== this.labelsHtml) { this.labelLayer.innerHTML = labels; this.labelsHtml = labels; }
@@ -168,4 +171,10 @@ function drawEffect({ type, x, y, age }) {
 function failMark(x, y, opacity) {
   return `<g opacity="${r2(opacity)}"><circle cx="${x}" cy="${y}" r="6.5" class="st-fail"/>` +
     `<path d="M${x - 2.6},${y - 2.6} L${x + 2.6},${y + 2.6} M${x + 2.6},${y - 2.6} L${x - 2.6},${y + 2.6}" class="st-fail-x"/></g>`;
+}
+
+function boxOf(points) {
+  const xs = points.map(p => p[0]);
+  const ys = points.map(p => p[1]);
+  return [Math.min(...xs), Math.min(...ys), Math.max(...xs), Math.max(...ys)];
 }

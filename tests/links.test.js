@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { lengthOf, pointAt, linkPoints, linePath, drawLink, drawLinkLabel, isInside, floorRoute } from '../src/links.js';
+import { lengthOf, pointAt, linkPoints, linePath, drawLink, drawLinkLabel, isInside, floorRoute, placeLabels } from '../src/links.js';
 import { SHAPE_DRAWERS } from '../src/shapes/index.js';
 import { readLesson } from '../src/lesson.js';
 
@@ -45,6 +45,19 @@ test('arrowheads, cut marks and labels', () => {
   assert.match(both, /marker-end="url\(#arr\)"/);
   assert.match(both, /marker-start="url\(#arr\)"/);
   assert.match(drawLink(step.links.v, step.scene, 'arr'), /st-link-cut-mark/);
-  assert.match(drawLinkLabel(step.links.l, step.scene), /HTTPS/);
-  assert.equal(drawLinkLabel(step.links.v, step.scene), '');
+  const spots = placeLabels(Object.values(step.links), step.scene, []);
+  assert.match(drawLinkLabel(step.links.l, spots.l), /HTTPS/);
+  assert.equal(drawLinkLabel(step.links.v, spots.v), '');
+});
+
+test('labels keep off shapes and off their own line', () => {
+  const links = [step.links.l];
+  const free = placeLabels(links, step.scene, []).l;
+  // Put a "shape" exactly where the label went: it must move somewhere else.
+  const blocker = [free[0] - 40, free[1] - 15, free[0] + 40, free[1] + 15];
+  const moved = placeLabels(links, step.scene, [blocker]).l;
+  assert.notDeepEqual(moved, free);
+  const points = linkPoints(step.links.l, step.scene);
+  const nearest = Math.min(...Array.from({ length: 50 }, (_, i) => { const [x, y] = pointAt(points, lengthOf(points) * i / 49); return Math.hypot(x - moved[0], y - moved[1]); }));
+  assert.ok(nearest > 12, 'the label center is not on the line');
 });

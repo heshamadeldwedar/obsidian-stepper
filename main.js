@@ -771,7 +771,6 @@ function between(a, b, t) {
 var viewBox = (v) => [v.x, v.y, v.w, v.h].map((n) => Math.round(n * 10) / 10).join(" ");
 
 // src/links.js
-var LABEL_GAP = 20;
 function floorRoute(link, from, to) {
   if (link.via?.length) return [from.at, ...link.via, to.at];
   const [fx, fy] = from.at;
@@ -855,28 +854,68 @@ function drawLink(link, scene, arrowId) {
   const cut = link.style === "cut" ? tag("path", { d: `M${r2(mx - 6)},${r2(my - 6)} L${r2(mx + 6)},${r2(my + 6)} M${r2(mx + 6)},${r2(my - 6)} L${r2(mx - 6)},${r2(my + 6)}`, class: "st-link-cut-mark" }) : "";
   return path + cut;
 }
-function drawLinkLabel(link, scene) {
-  if (!link.label) return "";
-  const points = linkPoints(link, scene);
-  if (link.labelAt === null && points.length === 3) {
-    const [x2, y2] = points[1];
-    return pill(x2, y2 + LABEL_GAP, link.label, { size: 10.5 });
-  }
+var LABEL_SIZE = 10.5;
+var labelBox = (text2) => ({ w: String(text2).length * LABEL_SIZE * 0.6 + 20, h: LABEL_SIZE + 10 });
+function placeLabels(links, scene, shapeBoxes) {
+  const lines = links.map((link) => linkPoints(link, scene));
+  const linePoints = lines.flatMap((points) => sample(points, 6));
+  const placed = [];
+  const spots = {};
+  links.forEach((link, i) => {
+    if (!link.label) return;
+    const points = lines[i];
+    const length = lengthOf(points);
+    const cornerAt = points.length === 3 ? Math.hypot(points[1][0] - points[0][0], points[1][1] - points[0][1]) / length : 0.65;
+    const wanted = link.labelAt ?? cornerAt;
+    const { w, h: h2 } = labelBox(link.label);
+    let best = null;
+    for (const shift of [0, 0.08, -0.08, 0.16, -0.16, 0.24, -0.24, 0.32, -0.32]) {
+      const t = Math.min(0.9, Math.max(0.1, wanted + shift));
+      const [x, y] = pointAt(points, length * t);
+      const [nx, ny] = normalAt(points, length * t);
+      for (const side of [1, -1]) {
+        for (const gap of [10, 22]) {
+          const push = gap + (Math.abs(nx) * w + Math.abs(ny) * h2) / 2;
+          const cx = x + nx * side * push;
+          const cy = y + ny * side * push;
+          const rect = [cx - w / 2, cy - h2 / 2, cx + w / 2, cy + h2 / 2];
+          const cost = shapeBoxes.reduce((sum, box2) => sum + overlap(rect, box2), 0) + placed.reduce((sum, box2) => sum + overlap(rect, box2, 4) * 3, 0) + linePoints.filter((p) => inRect(p, rect, 3)).length * 60 + Math.abs(shift) * 400 + (side === 1 ? 0 : 20) + (gap - 10);
+          if (!best || cost < best.cost) best = { cost, rect, center: [cx, cy] };
+        }
+      }
+    }
+    placed.push(best.rect);
+    spots[link.id] = best.center;
+  });
+  return spots;
+}
+function drawLinkLabel(link, center) {
+  return link.label && center ? pill(center[0], center[1], link.label, { size: LABEL_SIZE }) : "";
+}
+function normalAt(points, distance) {
   const length = lengthOf(points);
-  const at = length * (link.labelAt ?? 0.65);
-  const [x, y] = pointAt(points, at);
-  const [ax, ay] = pointAt(points, Math.max(0, at - 1));
-  const [bx, by] = pointAt(points, Math.min(length, at + 1));
+  const [ax, ay] = pointAt(points, Math.max(0, distance - 1));
+  const [bx, by] = pointAt(points, Math.min(length, distance + 1));
   let [nx, ny] = [-(by - ay), bx - ax];
   const size = Math.hypot(nx, ny) || 1;
   if (ny < 0) {
     nx = -nx;
     ny = -ny;
   }
-  const width = link.label.length * 10.5 * 0.6 + 20;
-  const push = LABEL_GAP + Math.abs(nx / size) * width * 0.45;
-  return pill(x + nx / size * push, y + ny / size * push, link.label, { size: 10.5 });
+  return [nx / size, ny / size];
 }
+function sample(points, step) {
+  const length = lengthOf(points);
+  const out = [];
+  for (let d = 0; d <= length; d += step) out.push(pointAt(points, d));
+  return out;
+}
+function overlap([a0, b0, a1, b1], [c0, d0, c1, d1], margin = 0) {
+  const w = Math.min(a1 + margin, c1) - Math.max(a0 - margin, c0);
+  const h2 = Math.min(b1 + margin, d1) - Math.max(b0 - margin, d0);
+  return w > 0 && h2 > 0 ? w * h2 : 0;
+}
+var inRect = ([x, y], [x0, y0, x1, y1], margin) => x > x0 - margin && x < x1 + margin && y > y0 - margin && y < y1 + margin;
 
 // src/stage.js
 var counter = 0;
@@ -953,11 +992,13 @@ var Stage = class {
   drawLinks(links, scene, opacity = {}) {
     let lines = "";
     let labels = "";
-    for (const link of links) {
+    const visible = links.filter((link) => (opacity[link.id] ?? 1) > 0.01);
+    const shapeBoxes = Object.values(scene).map((shape) => boxOf(SHAPE_DRAWERS[shape.type].outline(shape)));
+    const spots = placeLabels(visible, scene, shapeBoxes);
+    for (const link of visible) {
       const fade = opacity[link.id] ?? 1;
-      if (fade <= 0.01) continue;
       lines += `<g opacity="${fade}">${drawLink(link, scene, this.arrowId)}</g>`;
-      labels += `<g opacity="${fade}">${drawLinkLabel(link, scene)}</g>`;
+      labels += `<g opacity="${fade}">${drawLinkLabel(link, spots[link.id])}</g>`;
     }
     if (lines !== this.linesHtml) {
       this.layers.links.innerHTML = lines;
@@ -1048,6 +1089,11 @@ function drawEffect({ type, x, y, age }) {
 }
 function failMark(x, y, opacity) {
   return `<g opacity="${r2(opacity)}"><circle cx="${x}" cy="${y}" r="6.5" class="st-fail"/><path d="M${x - 2.6},${y - 2.6} L${x + 2.6},${y + 2.6} M${x + 2.6},${y - 2.6} L${x - 2.6},${y + 2.6}" class="st-fail-x"/></g>`;
+}
+function boxOf(points) {
+  const xs = points.map((p) => p[0]);
+  const ys = points.map((p) => p[1]);
+  return [Math.min(...xs), Math.min(...ys), Math.max(...xs), Math.max(...ys)];
 }
 
 // src/dots.js
