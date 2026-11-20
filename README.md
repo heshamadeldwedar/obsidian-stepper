@@ -1,5 +1,7 @@
 # Stepper for Obsidian
 
+![A Stepper block in Obsidian](docs/example-step-6.png)
+
 Write a small YAML block in a note. Stepper turns it into an **animated, step-by-step isometric diagram** you click through: servers, users and databases as little 3D blocks, dots flowing along arrows, and one idea per step.
 
 ````markdown
@@ -10,13 +12,14 @@ steps:
     text: 10 million users, 20 requests a day each.
     scene:
       users: { type: crowd, at: [-6, 4], label: 10M users }
-      s0:    { type: block, at: [4, -4], label: [One, server?] }
+      s0:    { type: block, at: [4, -4], label: [One, "server?"] }
     links: { u: { from: users, to: s0 } }
     flows: [ { route: [u], rate: 2 } ]
 ```
 ````
 
 - **How to write a block:** [docs/format.md](docs/format.md)
+- **A full example lesson:** [examples/napkin-math.md](examples/napkin-math.md)
 - **How it was built, phase by phase:** [docs/](docs/)
 
 ## Install
@@ -137,6 +140,19 @@ The code is plain JavaScript. Start reading at `src/main.js`. Each file begins w
 - [x] Print / PDF export: the current step, without buttons
 - [x] Smoke test of the real `main.js` against a fake Obsidian (13 checks)
 - [x] Unit tests (2 more, 32 total)
+
+### Phase 10: Example and release
+- [x] Full example lesson: `examples/napkin-math.md` (7 steps, our own words)
+- [x] Test that every published example (README, format guide, examples, insert command) is a valid lesson
+- [x] Acceptance check: 8 actions by accessible name (Next ×3, Pause, Play, timeline, Back, Replay), no errors
+- [x] Performance: 3 blocks at 0.1 ms of plugin work per frame; zero work when off screen
+- [x] Version 1.0.0, GitHub release with `main.js`, `manifest.json`, `styles.css`
+- [x] Unit tests: 37 total
+
+## Not in v1
+- A visual editor (blocks are written as YAML)
+- Exporting a step as PNG, or the animation as video
+- Listing in Obsidian's community plugin store
 
 ## Credits
 

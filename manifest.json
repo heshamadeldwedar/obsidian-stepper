@@ -1,7 +1,7 @@
 {
   "id": "stepper",
   "name": "Stepper",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "minAppVersion": "1.5.0",
   "description": "Write a small YAML block and get an animated, step-by-step isometric diagram you can click through.",
   "author": "Hesham Adel",

@@ -21,7 +21,7 @@ steps:
     metrics: { dau: 10M, peak: "?" }
     scene:
       users: { type: crowd, at: [-6, 4], label: 10M daily users }
-      s0:    { type: block, at: [4, -4], label: [One, server?] }
+      s0:    { type: block, at: [4, -4], label: [One, "server?"] }
     links:
       u: { from: users, to: s0 }
     flows:
@@ -94,6 +94,8 @@ Every shape has `type` and `at: [x, y]` (grid units on the floor: +x goes down-r
 | `device` | A laptop or phone | `kind` laptop \| phone, `label`, `tags` |
 | `ghost` | A see-through outline: planned or removed | `s`, `h`, `label` |
 | `ring` | Nodes on a circle (consistent hashing) | `r` (5), `n` (6), `label`, `color` |
+
+> **YAML tip:** inside `[ ]` or `{ }`, quote text with `?`, `:` or `#` in it: `label: [One, "server?"]`.
 
 **Colors:** `blue`, `green`, `orange`, `yellow`, `purple`, `red`, `gray`, `slab`.
 **Icons** (`glyph`, `icon`): [Lucide](https://lucide.dev/icons) names, like `server`, `database`, `zap`, `globe`, `users`. The list that's bundled is in `src/icons.js`.

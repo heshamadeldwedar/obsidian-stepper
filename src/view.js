@@ -210,6 +210,7 @@ export class View {
     this.player.setPaused(this.paused);
     this.pauseButton.replaceChildren(iconEl(this.paused ? 'play' : 'pause', 13), h('span', { cls: 'stepper-tool-text', text: this.paused ? 'Play' : 'Pause' }));
     this.pauseButton.setAttribute('aria-label', this.paused ? 'Play' : 'Pause');
+    this.pauseButton.setAttribute('title', this.paused ? 'Play' : 'Pause');
   }
 
   onKey(event) {

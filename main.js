@@ -1387,6 +1387,7 @@ var View = class {
     this.player.setPaused(this.paused);
     this.pauseButton.replaceChildren(iconEl(this.paused ? "play" : "pause", 13), h("span", { cls: "stepper-tool-text", text: this.paused ? "Play" : "Pause" }));
     this.pauseButton.setAttribute("aria-label", this.paused ? "Play" : "Pause");
+    this.pauseButton.setAttribute("title", this.paused ? "Play" : "Pause");
   }
   onKey(event) {
     if (event.target.closest("input, textarea")) return;
@@ -1462,7 +1463,7 @@ steps:
     metrics: { users: 10M }
     scene:
       people: { type: crowd, at: [-2, -8], label: 10M users }
-      s0:     { type: block, at: [0, 6], label: [One, server?] }
+      s0:     { type: block, at: [0, 6], label: [One, "server?"] }
     links: { u: { from: people, to: s0 } }
     flows: [ { route: [u], rate: 2 } ]
   - title: The busiest hour

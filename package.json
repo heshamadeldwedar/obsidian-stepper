@@ -1,6 +1,6 @@
 {
   "name": "obsidian-stepper",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "description": "Obsidian plugin: write a small YAML block, get an animated step-by-step isometric diagram.",
   "type": "module",
   "main": "main.js",
@@ -16,6 +16,7 @@
   "devDependencies": {
     "esbuild": "0.24.0",
     "lucide-static": "0.460.0",
-    "obsidian": "1.7.2"
+    "obsidian": "1.7.2",
+    "yaml": "^2.6.1"
   }
 }
